@@ -1,0 +1,12 @@
+{
+  "/_not-found": "app/_not-found.js",
+  "/analytics/page": "app/analytics/page.js",
+  "/inventory/page": "app/inventory/page.js",
+  "/library/instagram/page": "app/library/instagram/page.js",
+  "/page": "app/page.js",
+  "/library/page": "app/library/page.js",
+  "/followers/page": "app/followers/page.js",
+  "/api/page": "app/api/page.js",
+  "/orders/page": "app/orders/page.js",
+  "/reels/page": "app/reels/page.js"
+}
