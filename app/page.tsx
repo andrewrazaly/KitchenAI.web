@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { Button } from "./components/ui/button";
 import { Badge } from "./components/ui/badge";
 import { Skeleton } from "./components/ui/skeleton";
+import ShoppingListTrigger from './components/ShoppingListTrigger';
 import { 
   ChefHat, 
   Calendar, 
@@ -71,7 +72,7 @@ const quickActions: QuickAction[] = [
     title: 'AI Meal Planner',
     description: 'Create personalized meal plans',
     icon: ChefHat,
-    color: 'bg-gradient-to-r from-indigo-500 to-purple-600',
+    color: 'bg-green-100',
     href: '/meal-planner',
     badge: 'AI Powered'
   },
@@ -80,7 +81,7 @@ const quickActions: QuickAction[] = [
     title: 'Recipe Reels',
     description: 'Discover trending recipes',
     icon: Instagram,
-    color: 'bg-gradient-to-r from-pink-500 to-rose-500',
+    color: 'bg-orange-100',
     href: '/recipes/recipe-reels',
     badge: 'Trending'
   },
@@ -89,7 +90,7 @@ const quickActions: QuickAction[] = [
     title: 'Food Inventory',
     description: 'Track your ingredients',
     icon: Package,
-    color: 'bg-gradient-to-r from-blue-500 to-cyan-500',
+    color: 'bg-green-50',
     href: '/inventory'
   },
   {
@@ -97,7 +98,7 @@ const quickActions: QuickAction[] = [
     title: 'Shopping List',
     description: 'Smart grocery planning',
     icon: ShoppingCart,
-    color: 'bg-gradient-to-r from-green-500 to-emerald-500',
+    color: 'bg-yellow-50',
     href: '/shopping-list'
   }
 ];
@@ -200,25 +201,25 @@ function DashboardContent() {
   const { handleError } = useErrorHandler();
   const router = useRouter();
   
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [stats, setStats] = useState<DashboardStats>(mockStats);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load dashboard data
+  // Get display name from user
+  const displayName = user?.user_metadata?.full_name || 
+                     user?.email?.split('@')[0] || 
+                     'Chef';
+
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
         setIsLoading(true);
-        
-        // Simulate API call
+        // Simulate API delay
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
         setStats(mockStats);
         setRecentActivity(mockRecentActivity);
-        
       } catch (error) {
-        console.error('Error loading dashboard:', error);
-        handleError(new Error('Failed to load dashboard data'));
+        handleError(error);
       } finally {
         setIsLoading(false);
       }
@@ -226,271 +227,254 @@ function DashboardContent() {
 
     if (isSignedIn) {
       loadDashboardData();
-    } else {
-      setIsLoading(false);
     }
   }, [isSignedIn, handleError]);
 
   const handleQuickAction = (action: QuickAction) => {
-    if (!isSignedIn && action.id !== 'recipe-reels') {
-      showNotification('Please sign in to access this feature', 'error');
-      router.push('/auth/signin');
+    if (!action.href) {
+      showNotification(`${action.title} - Coming soon!`, 'info');
       return;
     }
     
     router.push(action.href);
+    showNotification(`Navigating to ${action.title}...`, 'success');
   };
 
-  // Show loading state
-  if (authLoading || isLoading) {
+  const handleShoppingListTrigger = () => {
+    router.push('/recipes?generateShoppingList=true');
+    showNotification('Navigating to generate shopping list...', 'success');
+  };
+
+  const budgetPercentage = Math.round((stats.budgetUsed / stats.weeklyBudget) * 100);
+
+  if (isLoading && !authLoading) {
     return <DashboardLoadingSkeleton />;
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Welcome Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-            {isSignedIn ? `Welcome back${user?.email ? `, ${user.email.split('@')[0]}` : ''}!` : 'Welcome to KitchenAI'}
-          </h1>
-          <p className="text-gray-600 text-lg">
-            {isSignedIn 
-              ? 'Your smart kitchen assistant is ready to help you plan, cook, and save.'
-              : 'Your AI-powered kitchen companion for meal planning, recipe discovery, and food management.'
-            }
-          </p>
+    <div className="min-h-screen" style={{ backgroundColor: '#f8f8f8' }}>
+      {/* Welcome Section */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold mb-2" style={{ color: '#3c3c3c' }}>
+                  Welcome back, {displayName}! 👋
+                </h1>
+                <p className="text-lg" style={{ color: '#888888' }}>
+                  Ready to create something delicious today?
+                </p>
+              </div>
+              <Button 
+                className="mt-4 md:mt-0 text-white font-semibold px-6 py-3 rounded-lg transition-all hover:opacity-90"
+                style={{ backgroundColor: '#91c11e' }}
+                onClick={() => router.push('/recipes/discover')}
+              >
+                <Sparkles className="h-5 w-5 mr-2" />
+                Discover Recipes
+              </Button>
+            </div>
+          </div>
         </div>
+      </div>
 
-        {/* Stats Cards - Only show if signed in */}
-        {isSignedIn && stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
-            <Card className="hover:shadow-md transition-shadow">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto space-y-8">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            <Card className="border border-gray-100 bg-white shadow-sm">
               <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Saved Recipes</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.totalRecipes}</p>
+                    <p className="text-xs md:text-sm font-medium" style={{ color: '#888888' }}>
+                      Saved Recipes
+                    </p>
+                    <p className="text-xl md:text-2xl font-bold" style={{ color: '#3c3c3c' }}>
+                      {stats.totalRecipes}
+                    </p>
                   </div>
-                  <Heart className="h-8 w-8 text-pink-500" />
+                  <div className="p-2 md:p-3 rounded-full" style={{ backgroundColor: '#f8fff0' }}>
+                    <ChefHat className="h-5 w-5 md:h-6 md:w-6" style={{ color: '#91c11e' }} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
-            
-            <Card className="hover:shadow-md transition-shadow">
+
+            <Card className="border border-gray-100 bg-white shadow-sm">
               <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Meal Plan</p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-2xl font-bold text-gray-900">
-                        {stats.activeMealPlan ? 'Active' : 'None'}
+                    <p className="text-xs md:text-sm font-medium" style={{ color: '#888888' }}>
+                      Meal Plan
+                    </p>
+                    <div className="flex items-center space-x-1 md:space-x-2">
+                      <p className="text-lg md:text-2xl font-bold" style={{ color: '#3c3c3c' }}>
+                        Active
                       </p>
-                      {stats.activeMealPlan && (
-                        <CheckCircle className="h-5 w-5 text-green-500" />
-                      )}
+                      <CheckCircle className="h-4 w-4 md:h-5 md:w-5" style={{ color: '#91c11e' }} />
                     </div>
                   </div>
-                  <Calendar className="h-8 w-8 text-indigo-500" />
+                  <div className="p-2 md:p-3 rounded-full" style={{ backgroundColor: '#f0f8f0' }}>
+                    <Calendar className="h-5 w-5 md:h-6 md:w-6" style={{ color: '#659a41' }} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-shadow">
+            <Card className="border border-gray-100 bg-white shadow-sm">
               <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Inventory</p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-2xl font-bold text-gray-900">{stats.inventoryItems}</p>
+                    <p className="text-xs md:text-sm font-medium" style={{ color: '#888888' }}>
+                      Inventory
+                    </p>
+                    <div className="flex items-center space-x-1 md:space-x-2">
+                      <p className="text-xl md:text-2xl font-bold" style={{ color: '#3c3c3c' }}>
+                        {stats.inventoryItems}
+                      </p>
                       {stats.expiringItems > 0 && (
-                        <Badge className="bg-yellow-100 text-yellow-700 text-xs">
+                        <Badge className="text-xs px-1 md:px-2 py-1 rounded-full font-medium" style={{ backgroundColor: '#fff8f0', color: '#ef9d17' }}>
                           {stats.expiringItems} expiring
                         </Badge>
                       )}
                     </div>
                   </div>
-                  <Package className="h-8 w-8 text-blue-500" />
+                  <div className="p-2 md:p-3 rounded-full" style={{ backgroundColor: '#fff8f0' }}>
+                    <Package className="h-5 w-5 md:h-6 md:w-6" style={{ color: '#ef9d17' }} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-shadow">
+            <Card className="border border-gray-100 bg-white shadow-sm">
               <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Budget Used</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      ${stats.budgetUsed}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs md:text-sm font-medium" style={{ color: '#888888' }}>
+                      Weekly Budget
                     </p>
-                    <p className="text-xs text-gray-500">of ${stats.weeklyBudget}</p>
+                    <p className="text-lg md:text-2xl font-bold truncate" style={{ color: '#3c3c3c' }}>
+                      ${stats.budgetUsed}/${stats.weeklyBudget}
+                    </p>
+                    <div className="w-full bg-gray-200 rounded-full h-1.5 md:h-2 mt-1 md:mt-2">
+                      <div 
+                        className="h-1.5 md:h-2 rounded-full transition-all duration-300"
+                        style={{ 
+                          width: `${Math.min(budgetPercentage, 100)}%`,
+                          backgroundColor: budgetPercentage > 90 ? '#ef9d17' : '#91c11e'
+                        }}
+                      ></div>
+                    </div>
                   </div>
-                  <TrendingUp className="h-8 w-8 text-green-500" />
+                  <div className="p-2 md:p-3 rounded-full ml-2" style={{ backgroundColor: '#fffef0' }}>
+                    <TrendingUp className="h-5 w-5 md:h-6 md:w-6" style={{ color: '#E8DE10' }} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
-        )}
 
-        {/* Quick Actions */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            {quickActions.map((action) => (
-              <Card 
-                key={action.id} 
-                className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1"
-                onClick={() => handleQuickAction(action)}
-              >
-                <CardContent className="p-6">
-                  <div className={`w-12 h-12 rounded-lg ${action.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                    <action.icon className="h-6 w-6 text-white" />
-                  </div>
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
-                      {action.title}
-                    </h3>
-                    {action.badge && (
-                      <Badge className="bg-indigo-100 text-indigo-700 text-xs">
-                        {action.badge}
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-600 mb-3">{action.description}</p>
-                  <div className="flex items-center text-indigo-600 text-sm font-medium group-hover:text-indigo-700">
-                    Get started
-                    <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          {/* AI Shopping List Trigger - Prominent Homepage Feature */}
+          <div>
+            <ShoppingListTrigger 
+              onTriggerGeneration={handleShoppingListTrigger}
+            />
           </div>
-        </div>
 
-        {/* Two Column Layout for larger screens */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Recent Activity */}
-          {isSignedIn && (
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="h-5 w-5" />
-                    Recent Activity
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {recentActivity.length > 0 ? (
+          {/* Quick Actions */}
+          <div>
+            <h2 className="text-2xl font-bold mb-6" style={{ color: '#3c3c3c' }}>
+              Quick Actions
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+              {quickActions.map((action) => (
+                <Card
+                  key={action.id}
+                  className="group cursor-pointer transition-all duration-200 hover:shadow-lg border border-gray-100 bg-white hover:scale-105"
+                  onClick={() => handleQuickAction(action)}
+                >
+                  <CardContent className="p-6 text-center">
                     <div className="space-y-4">
-                      {recentActivity.map((activity) => (
-                        <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                          <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                            <activity.icon className="h-5 w-5 text-indigo-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-900">{activity.title}</p>
-                            <p className="text-sm text-gray-600">{activity.description}</p>
-                          </div>
-                          <span className="text-xs text-gray-500 flex-shrink-0">{activity.timestamp}</span>
+                      <div className="relative mx-auto w-fit">
+                        <div 
+                          className={`p-4 rounded-full transition-all group-hover:scale-110 ${action.color}`}
+                          style={{
+                            backgroundColor: action.id === 'meal-planner' ? '#f8fff0' :
+                                           action.id === 'recipe-reels' ? '#fff8f0' :
+                                           action.id === 'inventory' ? '#f0f8f0' : '#fffef0'
+                          }}
+                        >
+                          <action.icon 
+                            className="h-8 w-8" 
+                            style={{ 
+                              color: action.id === 'meal-planner' ? '#91c11e' :
+                                     action.id === 'recipe-reels' ? '#ef9d17' :
+                                     action.id === 'inventory' ? '#659a41' : '#E8DE10'
+                            }} 
+                          />
                         </div>
-                      ))}
+                        {action.badge && (
+                          <Badge className="absolute -top-2 -right-2 text-xs px-2 py-1 text-white font-medium" style={{ backgroundColor: '#91c11e' }}>
+                            {action.badge}
+                          </Badge>
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg mb-1" style={{ color: '#3c3c3c' }}>
+                          {action.title}
+                        </h3>
+                        <p className="text-sm" style={{ color: '#888888' }}>
+                          {action.description}
+                        </p>
+                      </div>
+                      <ArrowRight className="h-4 w-4 mx-auto opacity-0 group-hover:opacity-100 transition-all" style={{ color: '#91c11e' }} />
                     </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Clock className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-600">No recent activity</p>
-                      <p className="text-sm text-gray-500">Start using KitchenAI to see your activity here</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          )}
-
-          {/* Tips & Getting Started */}
-          <div className={isSignedIn ? 'lg:col-span-1' : 'lg:col-span-3'}>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5" />
-                  {isSignedIn ? 'Pro Tips' : 'Getting Started'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isSignedIn ? (
-                  <div className="space-y-4">
-                    <div className="p-3 bg-blue-50 rounded-lg">
-                      <h4 className="font-medium text-blue-900 mb-1">💡 Smart Tip</h4>
-                      <p className="text-sm text-blue-800">
-                        Add expiry dates to your inventory items to get smart notifications and reduce food waste.
-                      </p>
-                    </div>
-                    <div className="p-3 bg-green-50 rounded-lg">
-                      <h4 className="font-medium text-green-900 mb-1">🎯 Weekly Goal</h4>
-                      <p className="text-sm text-green-800">
-                        Try planning 5 meals this week to save time and money on grocery shopping.
-                      </p>
-                    </div>
-                    <div className="p-3 bg-purple-50 rounded-lg">
-                      <h4 className="font-medium text-purple-900 mb-1">🔥 Trending</h4>
-                      <p className="text-sm text-purple-800">
-                        Check out the viral TikTok feta pasta recipe - it's trending in Recipe Reels!
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="text-center mb-6">
-                      <ChefHat className="h-16 w-16 text-indigo-600 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Ready to get started?</h3>
-                      <p className="text-gray-600 text-sm">
-                        Sign in to unlock personalized meal planning, inventory tracking, and more!
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <Button 
-                        onClick={() => router.push('/auth/signin')}
-                        className="w-full flex items-center justify-center gap-2"
-                      >
-                        <Users className="h-4 w-4" />
-                        Sign In
-                      </Button>
-                      <Button 
-                        onClick={() => router.push('/auth/signup')}
-                        className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center justify-center gap-2"
-                      >
-                        <Plus className="h-4 w-4" />
-                        Create Account
-                      </Button>
-                    </div>
-
-                    <div className="pt-4 border-t">
-                      <h4 className="font-medium text-gray-900 mb-3">What you'll get:</h4>
-                      <ul className="space-y-2 text-sm text-gray-600">
-                        <li className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          AI-powered meal planning
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          Smart inventory tracking
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          Recipe discovery & saving
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          Budget optimization
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </div>
+
+          {/* Recent Activity */}
+          <Card className="border border-gray-100 bg-white shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span style={{ color: '#3c3c3c' }}>Recent Activity</span>
+                <Button 
+                  className="font-medium transition-colors hover:bg-gray-50 text-sm px-3 py-1"
+                  style={{ color: '#91c11e' }}
+                >
+                  View All
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {recentActivity.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-start gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="p-2 rounded-full" style={{ backgroundColor: '#f8fff0' }}>
+                      <activity.icon className="h-5 w-5" style={{ color: '#91c11e' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm" style={{ color: '#3c3c3c' }}>
+                        {activity.title}
+                      </h4>
+                      <p className="text-sm text-truncate" style={{ color: '#888888' }}>
+                        {activity.description}
+                      </p>
+                    </div>
+                    <div className="text-xs" style={{ color: '#888888' }}>
+                      {activity.timestamp}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

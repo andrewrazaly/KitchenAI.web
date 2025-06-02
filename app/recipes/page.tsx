@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -22,6 +23,8 @@ interface StatsData {
 export default function RecipesPage() {
   const { isSignedIn } = useAuth();
   const supabase = useSupabase();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [reels, setReels] = useState<SavedReel[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<StatsData>({
@@ -51,6 +54,16 @@ export default function RecipesPage() {
       setLoading(false);
     }
   }, [isSignedIn, supabase]);
+
+  // Check for auto-generation from homepage
+  useEffect(() => {
+    const shouldGenerate = searchParams.get('generateShoppingList');
+    if (shouldGenerate === 'true' && isSignedIn && !loading) {
+      handleTriggerGeneration();
+      // Clean up the URL
+      router.replace('/recipes', { scroll: false });
+    }
+  }, [searchParams, isSignedIn, loading]);
 
   const handleTriggerGeneration = () => {
     setShowShoppingListGenerator(true);
