@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/app/lib/auth';
-
-// Import the inventory store from the main inventory route
-// Note: In production, this would use a real database
-import { inventoryStore } from '../route';
+import { inventoryStore } from '@/app/lib/inventory-store';
 
 interface RecipeIngredient {
   name: string;
