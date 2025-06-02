@@ -5,32 +5,80 @@ import { useAuth } from '../hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Search, Filter, ChevronRight, Loader2 } from "lucide-react";
+import { Search, Filter, ChevronRight, Loader2, ChefHat, Heart, Clock, Users, BookOpen, Play, Sparkles } from "lucide-react";
 import { getReelsWithRecipes, SavedReel } from '../../feature_import_instagram/lib/saved-reels-service';
 import { useSupabase } from '../hooks/useSupabase';
 import Link from 'next/link';
+import ShoppingListGenerator from '../components/ShoppingListGenerator';
+import ShoppingListTrigger from '../components/ShoppingListTrigger';
+
+interface StatsData {
+  totalRecipes: number;
+  totalSaves: number;
+  totalCookTime: number;
+  favoriteCategory: string;
+}
 
 export default function RecipesPage() {
   const { isSignedIn } = useAuth();
   const supabase = useSupabase();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [savedReelsWithRecipes, setSavedReelsWithRecipes] = useState<SavedReel[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [reels, setReels] = useState<SavedReel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<StatsData>({
+    totalRecipes: 0,
+    totalSaves: 0,
+    totalCookTime: 0,
+    favoriteCategory: 'Italian'
+  });
+  const [showShoppingListGenerator, setShowShoppingListGenerator] = useState(false);
 
   useEffect(() => {
     async function loadReels() {
       try {
         const reelsWithRecipes = await getReelsWithRecipes(supabase);
-        setSavedReelsWithRecipes(reelsWithRecipes || []);
+        setReels(reelsWithRecipes || []);
       } catch (error) {
         console.error('Error loading reels:', error);
-        setSavedReelsWithRecipes([]);
+        setReels([]);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     }
-    loadReels();
-  }, [supabase]);
+
+    if (isSignedIn) {
+      loadReels();
+    } else {
+      setLoading(false);
+    }
+  }, [isSignedIn, supabase]);
+
+  const handleTriggerGeneration = () => {
+    setShowShoppingListGenerator(true);
+    // Scroll to the shopping list generator
+    setTimeout(() => {
+      const element = document.getElementById('shopping-list-generator');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  };
+
+  // Calculate stats from loaded reels
+  useEffect(() => {
+    if (reels.length > 0) {
+      const totalCookTime = reels.reduce((acc, reel) => {
+        const timeMatch = reel.cookingTime?.match(/(\d+)/);
+        return acc + (timeMatch ? parseInt(timeMatch[1]) : 20);
+      }, 0);
+
+      setStats({
+        totalRecipes: reels.length,
+        totalSaves: reels.length,
+        totalCookTime,
+        favoriteCategory: 'Italian'
+      });
+    }
+  }, [reels]);
 
   if (!isSignedIn) {
     return (
@@ -47,199 +95,234 @@ export default function RecipesPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 bg-white min-h-screen">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Recipes</h1>
-        <div className="flex gap-4">
-          <div className="relative w-64">
-            <Input
-              type="text"
-              placeholder="Search recipes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white border-gray-200 text-gray-900 pr-10"
-            />
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+    <div className="min-h-screen" style={{ backgroundColor: '#f8f8f8' }}>
+      {/* Header */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold mb-2 flex items-center gap-3" style={{ color: '#3c3c3c' }}>
+                  <ChefHat className="h-8 w-8" style={{ color: '#91c11e' }} />
+                  Recipe Collection
+                </h1>
+                <p style={{ color: '#888888' }}>
+                  Discover, save, and cook amazing recipes from top chefs
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5" style={{ color: '#91c11e' }} />
+                <span className="text-sm font-medium" style={{ color: '#659a41' }}>
+                  {stats.totalRecipes} recipes available
+                </span>
+              </div>
+            </div>
           </div>
-          <Button className="flex items-center gap-2 border border-gray-200">
-            <Filter className="h-4 w-4" />
-            Filter
-          </Button>
         </div>
       </div>
 
-      {/* Quick Links */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Link href="/recipes/saved-reels">
-          <Card className="hover:bg-gray-50 transition-colors cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">All Saved Reels</CardTitle>
-              <ChevronRight className="h-5 w-5 text-gray-500" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                View all your saved Instagram reels
-              </p>
-              <p className="text-sm text-blue-600 mt-2">
-                Browse & organize →
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/recipes/recipe-reels">
-          <Card className="hover:bg-gray-50 transition-colors cursor-pointer border-2 border-orange-200 bg-orange-50">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                Recipe Reels
-                <span className="text-orange-500">🍳</span>
-              </CardTitle>
-              <ChevronRight className="h-5 w-5 text-orange-600" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-700">
-                Instagram reels converted to full recipes
-              </p>
-              <p className="text-sm font-medium mt-2 text-orange-700">
-                {savedReelsWithRecipes.length} recipe reels
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/recipes/my-recipes">
-          <Card className="hover:bg-gray-50 transition-colors cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">My Recipes</CardTitle>
-              <ChevronRight className="h-5 w-5 text-gray-500" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                Your personal recipe collection
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/recipes/discover">
-          <Card className="hover:bg-gray-50 transition-colors cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Discover</CardTitle>
-              <ChevronRight className="h-5 w-5 text-gray-500" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                Explore new recipes and inspiration
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
-
-      {/* Recent Recipe Reels - Instagram reels with full recipes */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Recipe Reels</h2>
-          <Link 
-            href="/recipes/recipe-reels"
-            className="text-sm text-orange-600 hover:text-orange-800 transition-colors"
-          >
-            View all recipe reels →
-          </Link>
-        </div>
-        <p className="text-gray-600 text-sm mb-4">
-          Instagram reels you've saved and converted into complete recipes with ingredients and instructions
-        </p>
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-          </div>
-        ) : savedReelsWithRecipes.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {savedReelsWithRecipes.slice(0, 6).map((reel) => (
-              <Card key={reel.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="aspect-video relative">
-                  {reel.image_versions2?.candidates?.[0]?.url ? (
-                    <img
-                      src={reel.image_versions2.candidates[0].url}
-                      alt={reel.recipeName || "Recipe thumbnail"}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-400 to-red-500">
-                      <span className="text-white text-3xl">🍳</span>
-                    </div>
-                  )}
-                  {/* Recipe badge */}
-                  <div className="absolute top-2 right-2 bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-medium">
-                    Recipe
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto space-y-8">
+          {/* Stats Cards */}
+          {isSignedIn && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              <Card className="border border-gray-100 bg-white shadow-sm">
+                <CardContent className="p-4 md:p-6 text-center">
+                  <div className="p-3 rounded-full mx-auto mb-3 w-fit" style={{ backgroundColor: '#f8fff0' }}>
+                    <BookOpen className="h-6 w-6" style={{ color: '#91c11e' }} />
                   </div>
-                  {/* Instagram badge */}
-                  <div className="absolute top-2 left-2 bg-pink-500 text-white px-2 py-1 rounded-full text-xs font-medium">
-                    📱 Reel
-                  </div>
-                </div>
-                <CardContent className="p-4">
-                  <h3 className="font-medium mb-2">{reel.recipeName || 'Untitled Recipe'}</h3>
-                  {reel.recipeDescription && (
-                    <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-                      {reel.recipeDescription}
-                    </p>
-                  )}
-                  
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
-                    {reel.cookingTime && (
-                      <span className="flex items-center gap-1">
-                        ⏱️ {reel.cookingTime}
-                      </span>
-                    )}
-                    {reel.servings && (
-                      <span className="flex items-center gap-1">
-                        👥 {reel.servings} servings
-                      </span>
-                    )}
-                    {reel.difficulty && (
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        reel.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
-                        reel.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {reel.difficulty}
-                      </span>
-                    )}
-                  </div>
-
-                  {reel.ingredients && reel.ingredients.length > 0 && (
-                    <div className="mb-3">
-                      <p className="text-xs font-medium text-gray-700 mb-1">Ingredients ({reel.ingredients.length}):</p>
-                      <p className="text-xs text-gray-600">
-                        {reel.ingredients.slice(0, 3).join(', ')}
-                        {reel.ingredients.length > 3 && ` +${reel.ingredients.length - 3} more`}
-                      </p>
-                    </div>
-                  )}
-
-                  <Button className="w-full bg-orange-500 hover:bg-orange-600">
-                    View Recipe
-                  </Button>
+                  <p className="text-2xl font-bold" style={{ color: '#3c3c3c' }}>{stats.totalRecipes}</p>
+                  <p className="text-sm" style={{ color: '#888888' }}>Total Recipes</p>
                 </CardContent>
               </Card>
-            ))}
+
+              <Card className="border border-gray-100 bg-white shadow-sm">
+                <CardContent className="p-4 md:p-6 text-center">
+                  <div className="p-3 rounded-full mx-auto mb-3 w-fit" style={{ backgroundColor: '#fff0f0' }}>
+                    <Heart className="h-6 w-6" style={{ color: '#f56565' }} />
+                  </div>
+                  <p className="text-2xl font-bold" style={{ color: '#3c3c3c' }}>{stats.totalSaves}</p>
+                  <p className="text-sm" style={{ color: '#888888' }}>Saved Recipes</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border border-gray-100 bg-white shadow-sm">
+                <CardContent className="p-4 md:p-6 text-center">
+                  <div className="p-3 rounded-full mx-auto mb-3 w-fit" style={{ backgroundColor: '#fff8f0' }}>
+                    <Clock className="h-6 w-6" style={{ color: '#ef9d17' }} />
+                  </div>
+                  <p className="text-2xl font-bold" style={{ color: '#3c3c3c' }}>{Math.round(stats.totalCookTime / 60)}h</p>
+                  <p className="text-sm" style={{ color: '#888888' }}>Cook Time</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border border-gray-100 bg-white shadow-sm">
+                <CardContent className="p-4 md:p-6 text-center">
+                  <div className="p-3 rounded-full mx-auto mb-3 w-fit" style={{ backgroundColor: '#f0f8f0' }}>
+                    <Users className="h-6 w-6" style={{ color: '#659a41' }} />
+                  </div>
+                  <p className="text-2xl font-bold" style={{ color: '#3c3c3c' }}>{stats.favoriteCategory}</p>
+                  <p className="text-sm" style={{ color: '#888888' }}>Favorite</p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* AI Shopping List Trigger */}
+          <ShoppingListTrigger onTriggerGeneration={handleTriggerGeneration} />
+
+          {/* Shopping List Generator */}
+          <div id="shopping-list-generator">
+            {showShoppingListGenerator && <ShoppingListGenerator />}
           </div>
-        ) : (
-          <div className="text-center py-12 bg-orange-50 rounded-lg border-2 border-dashed border-orange-200">
-            <span className="text-4xl mb-4 block">🍳📱</span>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No recipe reels yet</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Save Instagram reels and convert them into full recipes with ingredients and instructions
-            </p>
-            <Link href="/instagram">
-              <Button className="bg-orange-500 hover:bg-orange-600">
-                Browse Instagram Reels
-              </Button>
+
+          {/* Main Navigation Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Link href="/recipes/my-recipes">
+              <Card className="group cursor-pointer transition-all duration-200 hover:shadow-lg border border-gray-100 bg-white hover:scale-105">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-full" style={{ backgroundColor: '#f8fff0' }}>
+                      <BookOpen className="h-6 w-6" style={{ color: '#91c11e' }} />
+                    </div>
+                    <CardTitle className="text-lg" style={{ color: '#3c3c3c' }}>My Recipes</CardTitle>
+                  </div>
+                  <ChevronRight className="h-5 w-5 transition-colors" style={{ color: '#888888' }} />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm" style={{ color: '#888888' }}>
+                    Your personal recipe collection and favorites
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link href="/recipes/discover">
+              <Card className="group cursor-pointer transition-all duration-200 hover:shadow-lg border border-gray-100 bg-white hover:scale-105">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-full" style={{ backgroundColor: '#fff8f0' }}>
+                      <Sparkles className="h-6 w-6" style={{ color: '#ef9d17' }} />
+                    </div>
+                    <CardTitle className="text-lg" style={{ color: '#3c3c3c' }}>Discover</CardTitle>
+                  </div>
+                  <ChevronRight className="h-5 w-5 transition-colors" style={{ color: '#888888' }} />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm" style={{ color: '#888888' }}>
+                    Explore new recipes and culinary inspiration
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link href="/recipes/recipe-reels">
+              <Card className="group cursor-pointer transition-all duration-200 hover:shadow-lg border border-gray-100 bg-white hover:scale-105">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-full" style={{ backgroundColor: '#fffef0' }}>
+                      <Play className="h-6 w-6" style={{ color: '#E8DE10' }} />
+                    </div>
+                    <CardTitle className="text-lg" style={{ color: '#3c3c3c' }}>Recipe Reels</CardTitle>
+                  </div>
+                  <ChevronRight className="h-5 w-5 transition-colors" style={{ color: '#888888' }} />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm" style={{ color: '#888888' }}>
+                    Watch step-by-step cooking videos from chefs
+                  </p>
+                </CardContent>
+              </Card>
             </Link>
           </div>
-        )}
+
+          {/* Recent Recipe Reels */}
+          <div>
+            <h2 className="text-2xl font-bold mb-6" style={{ color: '#3c3c3c' }}>
+              Trending Recipe Reels
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[
+                {
+                  title: "5-Minute Avocado Toast",
+                  chef: "@healthy_chef",
+                  time: "5 min",
+                  views: "2.3M",
+                  thumbnail: "🥑"
+                },
+                {
+                  title: "Perfect Pasta Carbonara",
+                  chef: "@italian_master",
+                  time: "15 min", 
+                  views: "1.8M",
+                  thumbnail: "🍝"
+                },
+                {
+                  title: "Cloud Bread Recipe",
+                  chef: "@baking_queen",
+                  time: "20 min",
+                  views: "4.1M", 
+                  thumbnail: "🍞"
+                }
+              ].map((reel, index) => (
+                <Card key={index} className="group cursor-pointer transition-all duration-200 hover:shadow-lg border border-gray-100 bg-white">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="text-3xl">{reel.thumbnail}</div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold mb-1" style={{ color: '#3c3c3c' }}>
+                          {reel.title}
+                        </h3>
+                        <p className="text-sm mb-2" style={{ color: '#888888' }}>
+                          By {reel.chef}
+                        </p>
+                        <div className="flex items-center gap-3 text-xs" style={{ color: '#888888' }}>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {reel.time}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Play className="h-3 w-3" />
+                            {reel.views} views
+                          </span>
+                        </div>
+                      </div>
+                      <Heart className="h-5 w-5 transition-colors hover:text-red-500" style={{ color: '#888888' }} />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Popular Categories */}
+          <div>
+            <h2 className="text-2xl font-bold mb-6" style={{ color: '#3c3c3c' }}>
+              Popular Categories
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {[
+                { name: "Italian", emoji: "🍕", color: "#f8fff0" },
+                { name: "Asian", emoji: "🍜", color: "#fff8f0" },
+                { name: "Mexican", emoji: "🌮", color: "#fffef0" },
+                { name: "Healthy", emoji: "🥗", color: "#f0f8f0" },
+                { name: "Desserts", emoji: "🍰", color: "#fff0f8" },
+                { name: "Quick", emoji: "⚡", color: "#f0fff8" }
+              ].map((category, index) => (
+                <Card key={index} className="group cursor-pointer transition-all duration-200 hover:shadow-lg border border-gray-100 bg-white hover:scale-105">
+                  <CardContent className="p-4 text-center">
+                    <div className="p-3 rounded-full mx-auto mb-2 w-fit" style={{ backgroundColor: category.color }}>
+                      <span className="text-2xl">{category.emoji}</span>
+                    </div>
+                    <p className="font-medium text-sm" style={{ color: '#3c3c3c' }}>
+                      {category.name}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

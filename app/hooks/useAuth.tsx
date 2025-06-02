@@ -27,6 +27,27 @@ export function useAuth() {
     const getSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
+        
+        // In development, check for test session if no real session
+        if (!session && process.env.NODE_ENV === 'development') {
+          const testSession = localStorage.getItem('test-session');
+          if (testSession) {
+            const parsedSession = JSON.parse(testSession);
+            if (parsedSession.expires_at > Date.now()) {
+              setAuthState({
+                user: parsedSession.user as User,
+                session: parsedSession as Session,
+                loading: false,
+                error: null,
+              });
+              return;
+            } else {
+              // Clean up expired test session
+              localStorage.removeItem('test-session');
+            }
+          }
+        }
+        
         setAuthState({
           user: session?.user ?? null,
           session,
@@ -75,16 +96,33 @@ export function useAuth() {
   const signUp = async (email: string, password: string) => {
     if (!supabase) return { error: new Error('Supabase not initialized') };
     
-    const { data, error } = await supabase.auth.signUp({
+    const signUpOptions: any = {
       email,
       password,
-    });
+    };
+    
+    // Auto-confirm test accounts for development
+    if (email === 'test@gmail.com') {
+      signUpOptions.options = {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: {
+          auto_confirm: true
+        }
+      };
+    }
+    
+    const { data, error } = await supabase.auth.signUp(signUpOptions);
     
     return { data, error };
   };
 
   const signOut = async () => {
     if (!supabase) return { error: new Error('Supabase not initialized') };
+    
+    // Clear test session in development
+    if (process.env.NODE_ENV === 'development') {
+      localStorage.removeItem('test-session');
+    }
     
     const { error } = await supabase.auth.signOut();
     return { error };
