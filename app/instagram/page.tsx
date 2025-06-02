@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../../feature_import_instagram/components/ui/button";
 import { Input } from "../components/ui/input";
-import { Search, Loader2, Instagram, User, AlertCircle, Heart, HeartOff, Plus, X } from "lucide-react";
+import { Search, Loader2, Instagram, User, AlertCircle, Heart, HeartOff, Plus, X, ChefHat } from "lucide-react";
 import { fetchInstagramReels } from '../../feature_import_instagram/lib/instagram-service';
 import { ReelsGrid } from '../../feature_import_instagram/components/instagram/reels-grid';
 import { ReelData } from '../../feature_import_instagram/types/reels';
@@ -72,12 +72,16 @@ export default function InstagramSearchPage() {
       setError(null);
       setHasSearched(true);
       
-      const data = await fetchInstagramReels({
-        username_or_id_or_url: username.trim(),
-        url_embed_safe: true
-      });
+      // Use our new API endpoint
+      const response = await fetch(`/api/instagram/search-reels?username=${encodeURIComponent(username.trim())}&count=20`);
       
+      if (!response.ok) {
+        throw new Error('Failed to search Instagram reels');
+      }
+      
+      const data = await response.json();
       setReelsData(data);
+      
     } catch (err: any) {
       console.error('Error fetching reels:', err);
       setError(err.message || 'Failed to load Instagram reels. Please try again.');
@@ -145,6 +149,32 @@ export default function InstagramSearchPage() {
     }
   };
 
+  const handleDiscoverRecipes = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      setHasSearched(true);
+      setUsername('recipe_discovery');
+      
+      // Use our new API endpoint for recipe discovery
+      const response = await fetch(`/api/instagram/search-reels?username=recipe_discovery&count=10`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to load recipe reels');
+      }
+      
+      const data = await response.json();
+      setReelsData(data);
+      
+    } catch (err: any) {
+      console.error('Error fetching recipe reels:', err);
+      setError(err.message || 'Failed to load recipe reels. Please try again.');
+      setReelsData(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const popularCreators = [
     'gordonramsay',
     'thefoodbabe',
@@ -202,7 +232,16 @@ export default function InstagramSearchPage() {
                 )}
                 {isLoading ? 'Searching...' : 'Search'}
               </Button>
-              {username.trim() && !checkIsCreatorSaved(username.trim()) && (
+              <Button
+                onClick={handleDiscoverRecipes}
+                disabled={isLoading}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <ChefHat className="h-4 w-4" />
+                Discover Recipes
+              </Button>
+              {username.trim() && username !== 'recipe_discovery' && !checkIsCreatorSaved(username.trim()) && (
                 <Button
                   variant="outline"
                   onClick={handleSaveCurrentCreator}
@@ -419,10 +458,19 @@ export default function InstagramSearchPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  <CardTitle>Reels from @{username}</CardTitle>
+                  {username === 'recipe_discovery' ? (
+                    <>
+                      <ChefHat className="h-5 w-5" />
+                      <CardTitle>Trending Recipe Reels</CardTitle>
+                    </>
+                  ) : (
+                    <>
+                      <User className="h-5 w-5" />
+                      <CardTitle>Reels from @{username}</CardTitle>
+                    </>
+                  )}
                 </div>
-                {!checkIsCreatorSaved(username) && (
+                {username !== 'recipe_discovery' && !checkIsCreatorSaved(username) && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -436,7 +484,10 @@ export default function InstagramSearchPage() {
               </div>
               <p className="text-sm text-gray-600">
                 {reelsData.data.items.length} reels found
-                {isSignedIn && " • Click the bookmark icon to save reels"}
+                {username === 'recipe_discovery' 
+                  ? " • Click save to add recipes to your collection"
+                  : isSignedIn && " • Click the bookmark icon to save reels"
+                }
               </p>
             </CardHeader>
             <CardContent>
