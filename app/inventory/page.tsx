@@ -270,6 +270,65 @@ function InventoryContent() {
     }
   };
 
+  const handleScanBarcode = () => {
+    // Simulate barcode scanning functionality
+    showNotification('📱 Barcode scanner opening... (Feature coming soon!)', 'info');
+    // In a real app, this would open camera/barcode scanner
+    // For now, we'll simulate adding a scanned item
+    setTimeout(() => {
+      const scannedItem: InventoryItem = {
+        id: Date.now().toString(),
+        name: 'Scanned Product',
+        category: 'Scanned',
+        quantity: 1,
+        unit: 'item',
+        expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
+        purchaseDate: new Date().toISOString().split('T')[0],
+        location: 'Pantry',
+        status: 'fresh' as const,
+        image: '/api/placeholder/60/60'
+      };
+      setItems(prev => [scannedItem, ...prev]);
+      showNotification('✅ Product scanned and added to inventory!', 'success');
+    }, 2000);
+  };
+
+  const handleAddItem = () => {
+    setShowAddForm(true);
+    showNotification('📝 Add item form opening...', 'info');
+    // In a real app, this would open a proper add item modal/form
+    // For now, we'll simulate adding a new item
+    setTimeout(() => {
+      const newItem: InventoryItem = {
+        id: Date.now().toString(),
+        name: 'New Item',
+        category: 'Other',
+        quantity: 1,
+        unit: 'item',
+        expiryDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 14 days from now
+        purchaseDate: new Date().toISOString().split('T')[0],
+        location: 'Pantry',
+        status: 'fresh' as const,
+        image: '/api/placeholder/60/60'
+      };
+      setItems(prev => [newItem, ...prev]);
+      setShowAddForm(false);
+      showNotification('✅ New item added to inventory!', 'success');
+    }, 1500);
+  };
+
+  const handleEditItem = (item: InventoryItem) => {
+    showNotification(`✏️ Editing ${item.name}... (Feature coming soon!)`, 'info');
+    // In a real app, this would open an edit modal
+  };
+
+  const clearAllFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('all');
+    setSelectedStatus('all');
+    showNotification('🔄 All filters cleared', 'info');
+  };
+
   // Calculate stats
   const stats = {
     total: items.length,
@@ -371,13 +430,14 @@ function InventoryContent() {
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <Button 
-            onClick={() => setShowAddForm(true)}
+            onClick={handleAddItem}
             className="flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
             Add Item
           </Button>
           <Button 
+            onClick={handleScanBarcode}
             className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
           >
             <Scan className="h-4 w-4" />
@@ -389,6 +449,13 @@ function InventoryContent() {
           >
             <ShoppingCart className="h-4 w-4" />
             Shopping List
+          </Button>
+          <Button 
+            onClick={clearAllFilters}
+            className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700"
+          >
+            <Filter className="h-4 w-4" />
+            Clear Filters
           </Button>
         </div>
 
@@ -506,6 +573,12 @@ function InventoryContent() {
                           Add to List
                         </Button>
                         <Button
+                          onClick={() => handleEditItem(item)}
+                          className="text-xs py-1 px-2 h-8 bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
                           onClick={() => handleDeleteItem(item.id)}
                           className="text-xs py-1 px-2 h-8 bg-red-600 hover:bg-red-700"
                         >
@@ -528,7 +601,7 @@ function InventoryContent() {
                 : 'Your inventory is empty. Start by adding some items!'
               }
             </p>
-            <Button onClick={() => setShowAddForm(true)}>
+            <Button onClick={handleAddItem}>
               <Plus className="h-4 w-4 mr-2" />
               Add Your First Item
             </Button>
