@@ -21,7 +21,8 @@ import {
   Trash2,
   Edit,
   ShoppingCart,
-  Scan
+  Scan,
+  X
 } from "lucide-react";
 import { useNotification } from '../components/Notification';
 
@@ -38,7 +39,7 @@ interface InventoryItem {
   image?: string;
 }
 
-// Mock inventory data
+// Mock inventory data with working placeholder images
 const mockInventoryItems: InventoryItem[] = [
   {
     id: '1',
@@ -50,7 +51,7 @@ const mockInventoryItems: InventoryItem[] = [
     purchaseDate: '2024-01-08',
     location: 'Refrigerator',
     status: 'expiring',
-    image: '/api/placeholder/60/60'
+    image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=60&h=60&fit=crop&crop=center'
   },
   {
     id: '2',
@@ -62,7 +63,7 @@ const mockInventoryItems: InventoryItem[] = [
     purchaseDate: '2024-01-10',
     location: 'Pantry',
     status: 'fresh',
-    image: '/api/placeholder/60/60'
+    image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=60&h=60&fit=crop&crop=center'
   },
   {
     id: '3',
@@ -74,7 +75,7 @@ const mockInventoryItems: InventoryItem[] = [
     purchaseDate: '2024-01-05',
     location: 'Refrigerator',
     status: 'expired',
-    image: '/api/placeholder/60/60'
+    image: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=60&h=60&fit=crop&crop=center'
   },
   {
     id: '4',
@@ -86,7 +87,7 @@ const mockInventoryItems: InventoryItem[] = [
     purchaseDate: '2024-01-12',
     location: 'Counter',
     status: 'fresh',
-    image: '/api/placeholder/60/60'
+    image: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=60&h=60&fit=crop&crop=center'
   },
   {
     id: '5',
@@ -98,9 +99,160 @@ const mockInventoryItems: InventoryItem[] = [
     purchaseDate: '2024-01-13',
     location: 'Freezer',
     status: 'expiring',
-    image: '/api/placeholder/60/60'
+    image: 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=60&h=60&fit=crop&crop=center'
   }
 ];
+
+// Add Item Modal Component
+function AddItemModal({ isOpen, onClose, onAdd }: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  onAdd: (item: Omit<InventoryItem, 'id' | 'status'>) => void;
+}) {
+  const [formData, setFormData] = useState({
+    name: '',
+    category: 'Other',
+    quantity: 1,
+    unit: 'item',
+    expiryDate: '',
+    purchaseDate: new Date().toISOString().split('T')[0],
+    location: 'Pantry',
+    image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=60&h=60&fit=crop&crop=center'
+  });
+
+  const categories = ['Dairy', 'Bakery', 'Produce', 'Meat', 'Pantry', 'Frozen', 'Other'];
+  const locations = ['Refrigerator', 'Freezer', 'Pantry', 'Counter', 'Cabinet'];
+  const units = ['item', 'lbs', 'oz', 'gallon', 'cups', 'pieces', 'bottles', 'cans'];
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim()) return;
+    
+    onAdd(formData);
+    setFormData({
+      name: '',
+      category: 'Other',
+      quantity: 1,
+      unit: 'item',
+      expiryDate: '',
+      purchaseDate: new Date().toISOString().split('T')[0],
+      location: 'Pantry',
+      image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=60&h=60&fit=crop&crop=center'
+    });
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold">Add New Item</h2>
+            <Button onClick={onClose} className="p-1 h-8 w-8">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Item Name *</label>
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="e.g., Organic Milk"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Category</label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                >
+                  {categories.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Location</label>
+                <select
+                  value={formData.location}
+                  onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                >
+                  {locations.map(loc => (
+                    <option key={loc} value={loc}>{loc}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Quantity</label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={formData.quantity}
+                  onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Unit</label>
+                <select
+                  value={formData.unit}
+                  onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                >
+                  {units.map(unit => (
+                    <option key={unit} value={unit}>{unit}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Purchase Date</label>
+                <Input
+                  type="date"
+                  value={formData.purchaseDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, purchaseDate: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Expiry Date</label>
+                <Input
+                  type="date"
+                  value={formData.expiryDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, expiryDate: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button type="button" onClick={onClose} className="flex-1 bg-gray-500 hover:bg-gray-600">
+                Cancel
+              </Button>
+              <Button type="submit" className="flex-1">
+                Add Item
+              </Button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function InventoryLoadingSkeleton() {
   return (
@@ -286,7 +438,7 @@ function InventoryContent() {
         purchaseDate: new Date().toISOString().split('T')[0],
         location: 'Pantry',
         status: 'fresh' as const,
-        image: '/api/placeholder/60/60'
+        image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=60&h=60&fit=crop&crop=center'
       };
       setItems(prev => [scannedItem, ...prev]);
       showNotification('✅ Product scanned and added to inventory!', 'success');
@@ -295,26 +447,31 @@ function InventoryContent() {
 
   const handleAddItem = () => {
     setShowAddForm(true);
-    showNotification('📝 Add item form opening...', 'info');
-    // In a real app, this would open a proper add item modal/form
-    // For now, we'll simulate adding a new item
-    setTimeout(() => {
-      const newItem: InventoryItem = {
-        id: Date.now().toString(),
-        name: 'New Item',
-        category: 'Other',
-        quantity: 1,
-        unit: 'item',
-        expiryDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 14 days from now
-        purchaseDate: new Date().toISOString().split('T')[0],
-        location: 'Pantry',
-        status: 'fresh' as const,
-        image: '/api/placeholder/60/60'
-      };
-      setItems(prev => [newItem, ...prev]);
-      setShowAddForm(false);
-      showNotification('✅ New item added to inventory!', 'success');
-    }, 1500);
+  };
+
+  const handleAddItemSubmit = (itemData: Omit<InventoryItem, 'id' | 'status'>) => {
+    // Calculate status based on expiry date
+    const expiryDate = new Date(itemData.expiryDate);
+    const today = new Date();
+    const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    
+    let status: 'fresh' | 'expiring' | 'expired';
+    if (daysUntilExpiry < 0) {
+      status = 'expired';
+    } else if (daysUntilExpiry <= 3) {
+      status = 'expiring';
+    } else {
+      status = 'fresh';
+    }
+
+    const newItem: InventoryItem = {
+      ...itemData,
+      id: Date.now().toString(),
+      status
+    };
+
+    setItems(prev => [newItem, ...prev]);
+    showNotification(`✅ ${itemData.name} added to inventory!`, 'success');
   };
 
   const handleEditItem = (item: InventoryItem) => {
@@ -365,6 +522,13 @@ function InventoryContent() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-6xl mx-auto">
+        {/* Add Item Modal */}
+        <AddItemModal 
+          isOpen={showAddForm} 
+          onClose={() => setShowAddForm(false)}
+          onAdd={handleAddItemSubmit}
+        />
+
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
@@ -532,9 +696,13 @@ function InventoryContent() {
                     {/* Item Image */}
                     <div className="flex-shrink-0">
                       <img
-                        src={item.image || '/api/placeholder/60/60'}
+                        src={item.image || 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=60&h=60&fit=crop&crop=center'}
                         alt={item.name}
                         className="w-16 h-16 rounded-lg object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=60&h=60&fit=crop&crop=center';
+                        }}
                       />
                     </div>
 
