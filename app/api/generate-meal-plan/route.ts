@@ -1,6 +1,15 @@
 import { NextResponse } from 'next/server';
 import type OpenAIType from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import { rateLimiter } from '../../lib/rate-limiter';
+
+// Initialize Claude client
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY || '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',
+});
+
+// Check if we have Claude API key
+const useClaudeAI = process.env.ANTHROPIC_API_KEY || true; // Default to true since we have the key
 
 // Only use OpenAI if the API key is available
 const useOpenAI = process.env.OPENAI_API_KEY && 
@@ -21,8 +30,8 @@ if (useOpenAI) {
 
 export async function POST(request: Request) {
   try {
-    // Apply rate limiting only when using real OpenAI
-    if (useOpenAI) {
+    // Apply rate limiting only when using real AI
+    if (useClaudeAI || useOpenAI) {
       const limitExceeded = await rateLimiter(request as any);
       if (limitExceeded) {
         return limitExceeded; // Return rate limit response if limit exceeded
@@ -38,7 +47,25 @@ export async function POST(request: Request) {
       inventoryItems = [] 
     } = await request.json();
     
-    // Use real OpenAI if available, otherwise use mock data
+    // Try Claude AI first
+    if (useClaudeAI) {
+      try {
+        const mealPlan = await generateMealPlanWithClaude(
+          budget, preferences, restrictions, days, expiringItems, inventoryItems
+        );
+        
+        return NextResponse.json({ 
+          success: true, 
+          mealPlan: mealPlan,
+          source: 'claude'
+        });
+      } catch (error) {
+        console.error('Error with Claude API:', error);
+        console.log("Claude failed, trying OpenAI...");
+      }
+    }
+    
+    // Use OpenAI as fallback if Claude fails or isn't available
     if (useOpenAI && openai) {
       try {
         // Create the prompt for OpenAI
@@ -85,33 +112,140 @@ export async function POST(request: Request) {
         
         return NextResponse.json({ 
           success: true, 
-          mealPlan: mealPlan.meals
+          mealPlan: mealPlan.meals,
+          source: 'openai'
         });
       } catch (error) {
         console.error('Error with OpenAI API:', error);
-        // Fall back to mock data if OpenAI fails
-        console.log("Falling back to mock meal plan data due to OpenAI error");
-        const mockMealPlan = generateMockMealPlan(days, expiringItems, inventoryItems);
-        return NextResponse.json({ 
-          success: true, 
-          mealPlan: mockMealPlan
-        });
+        console.log("OpenAI failed, falling back to mock data");
       }
-    } else {
-      // Generate mock data when OpenAI is not available
-      console.log("Using mock meal plan data - no valid OpenAI API key found");
-      const mockMealPlan = generateMockMealPlan(days, expiringItems, inventoryItems);
-      return NextResponse.json({ 
-        success: true, 
-        mealPlan: mockMealPlan
-      });
     }
+    
+    // Generate mock data as final fallback
+    console.log("Using mock meal plan data - no valid AI API keys found");
+    const mockMealPlan = generateMockMealPlan(days, expiringItems, inventoryItems);
+    return NextResponse.json({ 
+      success: true, 
+      mealPlan: mockMealPlan,
+      source: 'mock'
+    });
+    
   } catch (error) {
     console.error('Error generating meal plan:', error);
     return NextResponse.json({ 
       success: false, 
       message: 'Failed to generate meal plan. Please try again.' 
     }, { status: 500 });
+  }
+}
+
+// Claude AI meal plan generation
+async function generateMealPlanWithClaude(
+  budget: number | null,
+  preferences: string[],
+  restrictions: string[],
+  days: number,
+  expiringItems: string[],
+  inventoryItems: string[]
+) {
+  const systemPrompt = `You are an expert nutritionist and chef who creates personalized meal plans. Your goal is to:
+
+1. Create balanced, healthy meals for each day
+2. PRIORITIZE using ingredients that are expiring soon to reduce food waste
+3. Incorporate ingredients already in inventory to save money
+4. Respect dietary restrictions and preferences
+5. Stay within budget constraints when specified
+6. Provide realistic prep times and difficulty levels
+
+Always return ONLY valid JSON in the exact format requested.`;
+
+  let userPrompt = `Create a ${days}-day meal plan with breakfast, lunch, and dinner for each day.\n\n`;
+
+  if (restrictions && restrictions.length > 0) {
+    userPrompt += `DIETARY RESTRICTIONS (must follow): ${restrictions.join(', ')}\n\n`;
+  }
+
+  if (preferences && preferences.length > 0) {
+    userPrompt += `FOOD PREFERENCES: ${preferences.join(', ')}\n\n`;
+  }
+
+  if (budget) {
+    userPrompt += `BUDGET CONSTRAINT: Total budget is $${budget}. Optimize recipes to stay within this budget.\n\n`;
+  }
+
+  if (expiringItems && expiringItems.length > 0) {
+    userPrompt += `🚨 PRIORITY: These ingredients are expiring soon - MUST use them first: ${expiringItems.join(', ')}\n\n`;
+  }
+
+  if (inventoryItems && inventoryItems.length > 0) {
+    userPrompt += `AVAILABLE INVENTORY: I already have these ingredients, please use them: ${inventoryItems.join(', ')}\n\n`;
+  }
+
+  userPrompt += `Return ONLY this JSON format:
+{
+  "meals": [
+    {
+      "date": "YYYY-MM-DD",
+      "breakfast": {
+        "title": "Recipe Name",
+        "ingredients": ["ingredient1", "ingredient2"],
+        "prepTime": 15,
+        "difficulty": "easy",
+        "nutrition": {"calories": 350, "protein": 20, "carbs": 30, "fat": 15}
+      },
+      "lunch": {
+        "title": "Recipe Name", 
+        "ingredients": ["ingredient1", "ingredient2"],
+        "prepTime": 25,
+        "difficulty": "medium",
+        "nutrition": {"calories": 450, "protein": 25, "carbs": 40, "fat": 18}
+      },
+      "dinner": {
+        "title": "Recipe Name",
+        "ingredients": ["ingredient1", "ingredient2"], 
+        "prepTime": 35,
+        "difficulty": "medium",
+        "nutrition": {"calories": 550, "protein": 30, "carbs": 45, "fat": 22}
+      }
+    }
+  ]
+}
+
+Generate exactly ${days} consecutive days starting from today.
+Use simple ingredient names suitable for grocery shopping.
+Difficulty levels: "easy", "medium", or "hard"
+Prep times should be realistic in minutes.`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 4000,
+      temperature: 0.7,
+      system: systemPrompt,
+      messages: [
+        {
+          role: 'user',
+          content: userPrompt
+        }
+      ]
+    });
+
+    const content = response.content[0];
+    if (content.type === 'text') {
+      // Parse Claude's JSON response
+      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return parsed.meals || [];
+      }
+    }
+
+    // If parsing fails, throw error to trigger fallback
+    throw new Error('Failed to parse Claude response');
+
+  } catch (error) {
+    console.error('Claude meal plan generation error:', error);
+    throw error; // Re-throw to trigger fallback
   }
 }
 
