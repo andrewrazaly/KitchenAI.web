@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/app/lib/auth';
 
 // In-memory store for inventory items (temporary solution)
-const inventoryStore = new Map<string, any[]>();
+export const inventoryStore = new Map<string, any[]>();
 
 export async function GET(request: Request) {
   try {
