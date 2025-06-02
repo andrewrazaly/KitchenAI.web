@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -20,7 +20,7 @@ interface StatsData {
   favoriteCategory: string;
 }
 
-export default function RecipesPage() {
+function RecipesPageContent() {
   const { isSignedIn } = useAuth();
   const supabase = useSupabase();
   const router = useRouter();
@@ -338,5 +338,42 @@ export default function RecipesPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RecipesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen" style={{ backgroundColor: '#f8f8f8' }}>
+        <div className="bg-white border-b border-gray-100">
+          <div className="container mx-auto px-4 py-8">
+            <div className="max-w-6xl mx-auto">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="h-8 w-64 bg-gray-200 rounded animate-pulse mb-2"></div>
+                  <div className="h-4 w-96 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                <div className="h-6 w-32 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-lg p-6 shadow-sm">
+                  <div className="h-12 w-12 bg-gray-200 rounded-full mx-auto mb-3 animate-pulse"></div>
+                  <div className="h-6 w-16 bg-gray-200 rounded mx-auto mb-1 animate-pulse"></div>
+                  <div className="h-4 w-20 bg-gray-200 rounded mx-auto animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <RecipesPageContent />
+    </Suspense>
   );
 } 
