@@ -12,6 +12,7 @@ export default function Navbar() {
     { name: 'Home', href: '/' },
     { name: 'Meal Planner', href: '/meal-planner' },
     { name: 'Instagram', href: '/instagram' },
+    { name: 'Shopping List', href: '/shopping-list' },
     { name: 'Inventory', href: '/inventory' },
     { name: 'Recipes', href: '/recipes' },
   ];
@@ -21,12 +22,12 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-white shadow-lg">
+    <nav className="bg-white shadow-sm border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/" className="text-2xl font-bold text-indigo-600">
+              <Link href="/" className="text-2xl font-bold transition-colors" style={{ color: '#91c11e' }}>
                 KitchenAI
               </Link>
             </div>
@@ -35,11 +36,15 @@ export default function Navbar() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`${
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors ${
                     pathname === item.href
-                      ? 'border-indigo-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
+                      ? 'border-b-2 text-gray-900'
+                      : 'border-transparent hover:border-gray-200'
+                  }`}
+                  style={pathname === item.href 
+                    ? { borderBottomColor: '#91c11e', color: '#3c3c3c' }
+                    : { color: '#888888' }
+                  }
                 >
                   {item.name}
                 </Link>
@@ -50,12 +55,13 @@ export default function Navbar() {
             <div className="ml-3 relative">
               {isSignedIn ? (
                 <div className="flex items-center space-x-4">
-                  <span className="text-sm text-gray-700">
+                  <span className="text-sm font-medium" style={{ color: '#3c3c3c' }}>
                     {user?.email}
                   </span>
                   <button
                     onClick={handleSignOut}
-                    className="bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                    className="bg-white border-2 font-semibold px-4 py-2 rounded-lg text-sm transition-all hover:bg-gray-50"
+                    style={{ borderColor: '#91c11e', color: '#91c11e' }}
                   >
                     Sign Out
                   </button>
@@ -63,7 +69,8 @@ export default function Navbar() {
               ) : (
                 <Link
                   href="/auth/signin"
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90"
+                  style={{ backgroundColor: '#91c11e' }}
                 >
                   Sign In
                 </Link>

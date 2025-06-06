@@ -22,9 +22,11 @@ import {
   Edit,
   ShoppingCart,
   Scan,
-  X
+  X,
+  ChevronDown
 } from "lucide-react";
 import { useNotification } from '../components/Notification';
+import { trackEvent } from '../components/GoogleAnalytics';
 
 interface InventoryItem {
   id: string;
@@ -103,6 +105,233 @@ const mockInventoryItems: InventoryItem[] = [
   }
 ];
 
+// Custom Date Picker Component
+function DatePicker({ 
+  value, 
+  onChange, 
+  placeholder = "Select date",
+  label
+}: {
+  value: string;
+  onChange: (date: string) => void;
+  placeholder?: string;
+  label?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedDay, setSelectedDay] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [selectedYear, setSelectedYear] = useState('');
+
+  // Initialize from value
+  useEffect(() => {
+    if (value) {
+      const date = new Date(value);
+      setSelectedDay(date.getDate().toString().padStart(2, '0'));
+      setSelectedMonth((date.getMonth() + 1).toString().padStart(2, '0'));
+      setSelectedYear(date.getFullYear().toString());
+    }
+  }, [value]);
+
+  const months = [
+    { value: '01', label: 'January' },
+    { value: '02', label: 'February' },
+    { value: '03', label: 'March' },
+    { value: '04', label: 'April' },
+    { value: '05', label: 'May' },
+    { value: '06', label: 'June' },
+    { value: '07', label: 'July' },
+    { value: '08', label: 'August' },
+    { value: '09', label: 'September' },
+    { value: '10', label: 'October' },
+    { value: '11', label: 'November' },
+    { value: '12', label: 'December' }
+  ];
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 10 }, (_, i) => (currentYear + i).toString());
+  const days = Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0'));
+
+  const handleDateChange = (day: string, month: string, year: string) => {
+    if (day && month && year) {
+      const dateStr = `${year}-${month}-${day}`;
+      onChange(dateStr);
+    }
+  };
+
+  const formatDisplayDate = () => {
+    if (!value) return placeholder;
+    const date = new Date(value);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
+  const clearDate = () => {
+    setSelectedDay('');
+    setSelectedMonth('');
+    setSelectedYear('');
+    onChange('');
+    setIsOpen(false);
+  };
+
+  const handleQuickSelect = (daysFromNow: number) => {
+    const date = new Date();
+    date.setDate(date.getDate() + daysFromNow);
+    const dateStr = date.toISOString().split('T')[0];
+    onChange(dateStr);
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="relative">
+      <div 
+        className="w-full p-3 border-2 border-gray-200 rounded-lg bg-white cursor-pointer transition-colors hover:border-gray-300 flex items-center justify-between"
+        style={{ color: '#3c3c3c' }}
+        onClick={() => setIsOpen(!isOpen)}
+        onFocus={() => setIsOpen(true)}
+      >
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4" style={{ color: '#888888' }} />
+          <span className={value ? 'text-gray-900' : 'text-gray-400'}>
+            {formatDisplayDate()}
+          </span>
+        </div>
+        <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} style={{ color: '#888888' }} />
+      </div>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-4">
+          {/* Quick Select Options */}
+          <div className="mb-4">
+            <p className="text-sm font-medium mb-2" style={{ color: '#3c3c3c' }}>Quick Select:</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleQuickSelect(0)}
+                className="px-3 py-2 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                style={{ color: '#3c3c3c' }}
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickSelect(7)}
+                className="px-3 py-2 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                style={{ color: '#3c3c3c' }}
+              >
+                +1 Week
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickSelect(3)}
+                className="px-3 py-2 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                style={{ color: '#3c3c3c' }}
+              >
+                +3 Days
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickSelect(30)}
+                className="px-3 py-2 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                style={{ color: '#3c3c3c' }}
+              >
+                +1 Month
+              </button>
+            </div>
+          </div>
+
+          {/* Date Dropdowns */}
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            <div>
+              <label className="block text-xs font-medium mb-1" style={{ color: '#888888' }}>Month</label>
+              <select
+                value={selectedMonth}
+                onChange={(e) => {
+                  setSelectedMonth(e.target.value);
+                  handleDateChange(selectedDay, e.target.value, selectedYear);
+                }}
+                className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-white"
+                style={{ color: '#3c3c3c' }}
+              >
+                <option value="">Month</option>
+                {months.map(month => (
+                  <option key={month.value} value={month.value}>{month.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium mb-1" style={{ color: '#888888' }}>Day</label>
+              <select
+                value={selectedDay}
+                onChange={(e) => {
+                  setSelectedDay(e.target.value);
+                  handleDateChange(e.target.value, selectedMonth, selectedYear);
+                }}
+                className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-white"
+                style={{ color: '#3c3c3c' }}
+              >
+                <option value="">Day</option>
+                {days.map(day => (
+                  <option key={day} value={day}>{day}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium mb-1" style={{ color: '#888888' }}>Year</label>
+              <select
+                value={selectedYear}
+                onChange={(e) => {
+                  setSelectedYear(e.target.value);
+                  handleDateChange(selectedDay, selectedMonth, e.target.value);
+                }}
+                className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-white"
+                style={{ color: '#3c3c3c' }}
+              >
+                <option value="">Year</option>
+                {years.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={clearDate}
+              className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              style={{ color: '#888888' }}
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="flex-1 px-3 py-2 text-sm text-white rounded-lg transition-colors"
+              style={{ backgroundColor: '#91c11e' }}
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Click outside to close */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
 // Add Item Modal Component
 function AddItemModal({ isOpen, onClose, onAdd }: { 
   isOpen: boolean; 
@@ -145,34 +374,56 @@ function AddItemModal({ isOpen, onClose, onAdd }: {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">Add New Item</h2>
-            <Button onClick={onClose} className="p-1 h-8 w-8">
-              <X className="h-4 w-4" />
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl border-2 border-gray-100">
+        <div className="p-6 space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+            <div>
+              <h2 className="text-2xl font-bold" style={{ color: '#3c3c3c' }}>Add New Item</h2>
+              <p className="text-sm mt-1" style={{ color: '#888888' }}>Fill in the item details below</p>
+            </div>
+            <Button 
+              onClick={onClose} 
+              className="h-9 w-9 p-0 rounded-full hover:bg-gray-50 border border-gray-200"
+              style={{ color: '#888888' }}
+            >
+              <X className="h-5 w-5" />
             </Button>
           </div>
           
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Item Name */}
             <div>
-              <label className="block text-sm font-medium mb-1">Item Name *</label>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#3c3c3c' }}>
+                Item Name <span style={{ color: '#91c11e' }}>*</span>
+              </label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="e.g., Organic Milk"
+                className="bg-white border-2 border-gray-200 focus:border-2 text-gray-900 placeholder:text-gray-400 rounded-lg transition-colors"
+                style={{ 
+                  color: '#3c3c3c',
+                  '--tw-ring-color': '#91c11e'
+                } as React.CSSProperties}
+                onFocus={(e) => e.target.style.borderColor = '#91c11e'}
+                onBlur={(e) => e.target.style.borderColor = '#cccccc'}
                 required
               />
             </div>
 
+            {/* Category and Location */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Category</label>
+                <label className="block text-sm font-semibold mb-2" style={{ color: '#3c3c3c' }}>Category</label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                  className="w-full p-2 border border-gray-300 rounded-md"
+                  className="w-full rounded-lg border-2 border-gray-200 bg-white text-gray-900 focus:border-2 transition-colors p-3"
+                  style={{ color: '#3c3c3c' }}
+                  onFocus={(e) => e.target.style.borderColor = '#91c11e'}
+                  onBlur={(e) => e.target.style.borderColor = '#cccccc'}
                 >
                   {categories.map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
@@ -181,11 +432,14 @@ function AddItemModal({ isOpen, onClose, onAdd }: {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Location</label>
+                <label className="block text-sm font-semibold mb-2" style={{ color: '#3c3c3c' }}>Location</label>
                 <select
                   value={formData.location}
                   onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                  className="w-full p-2 border border-gray-300 rounded-md"
+                  className="w-full rounded-lg border-2 border-gray-200 bg-white text-gray-900 focus:border-2 transition-colors p-3"
+                  style={{ color: '#3c3c3c' }}
+                  onFocus={(e) => e.target.style.borderColor = '#91c11e'}
+                  onBlur={(e) => e.target.style.borderColor = '#cccccc'}
                 >
                   {locations.map(loc => (
                     <option key={loc} value={loc}>{loc}</option>
@@ -194,23 +448,34 @@ function AddItemModal({ isOpen, onClose, onAdd }: {
               </div>
             </div>
 
+            {/* Quantity and Unit */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Quantity</label>
+                <label className="block text-sm font-semibold mb-2" style={{ color: '#3c3c3c' }}>Quantity</label>
                 <Input
                   type="number"
                   min="1"
                   value={formData.quantity}
                   onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+                  className="bg-white border-2 border-gray-200 focus:border-2 text-gray-900 rounded-lg transition-colors"
+                  style={{ 
+                    color: '#3c3c3c',
+                    '--tw-ring-color': '#91c11e'
+                  } as React.CSSProperties}
+                  onFocus={(e) => e.target.style.borderColor = '#91c11e'}
+                  onBlur={(e) => e.target.style.borderColor = '#cccccc'}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Unit</label>
+                <label className="block text-sm font-semibold mb-2" style={{ color: '#3c3c3c' }}>Unit</label>
                 <select
                   value={formData.unit}
                   onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))}
-                  className="w-full p-2 border border-gray-300 rounded-md"
+                  className="w-full rounded-lg border-2 border-gray-200 bg-white text-gray-900 focus:border-2 transition-colors p-3"
+                  style={{ color: '#3c3c3c' }}
+                  onFocus={(e) => e.target.style.borderColor = '#91c11e'}
+                  onBlur={(e) => e.target.style.borderColor = '#cccccc'}
                 >
                   {units.map(unit => (
                     <option key={unit} value={unit}>{unit}</option>
@@ -219,31 +484,42 @@ function AddItemModal({ isOpen, onClose, onAdd }: {
               </div>
             </div>
 
+            {/* Dates with Custom Date Pickers */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Purchase Date</label>
-                <Input
-                  type="date"
+                <label className="block text-sm font-semibold mb-2" style={{ color: '#3c3c3c' }}>Purchase Date</label>
+                <DatePicker
                   value={formData.purchaseDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, purchaseDate: e.target.value }))}
+                  onChange={(date) => setFormData(prev => ({ ...prev, purchaseDate: date }))}
+                  placeholder="Select purchase date"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Expiry Date</label>
-                <Input
-                  type="date"
+                <label className="block text-sm font-semibold mb-2" style={{ color: '#3c3c3c' }}>Expiry Date</label>
+                <DatePicker
                   value={formData.expiryDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, expiryDate: e.target.value }))}
+                  onChange={(date) => setFormData(prev => ({ ...prev, expiryDate: date }))}
+                  placeholder="Select expiry date"
                 />
               </div>
             </div>
 
-            <div className="flex gap-3 pt-4">
-              <Button type="button" onClick={onClose} className="flex-1 bg-gray-500 hover:bg-gray-600">
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-2 border-t border-gray-100">
+              <Button 
+                type="button" 
+                onClick={onClose} 
+                className="flex-1 bg-white hover:bg-gray-50 border-2 text-gray-700 rounded-lg transition-colors font-semibold"
+                style={{ borderColor: '#91c11e', color: '#91c11e' }}
+              >
                 Cancel
               </Button>
-              <Button type="submit" className="flex-1">
+              <Button 
+                type="submit" 
+                className="flex-1 text-white rounded-lg transition-colors font-semibold hover:opacity-90"
+                style={{ backgroundColor: '#91c11e' }}
+              >
                 Add Item
               </Button>
             </div>
@@ -403,12 +679,19 @@ function InventoryContent() {
 
   const handleDeleteItem = async (itemId: string) => {
     try {
+      const deletedItem = items.find(item => item.id === itemId);
       const updatedItems = items.filter(item => item.id !== itemId);
       setItems(updatedItems);
       showNotification('Item removed from inventory', 'success');
+      
+      // Track inventory item deletion
+      if (deletedItem) {
+        trackEvent('inventory_item_deleted', 'inventory', deletedItem.category);
+      }
     } catch (error) {
       console.error('Error deleting item:', error);
       handleError(new Error('Failed to delete item'));
+      trackEvent('inventory_delete_error', 'inventory');
     }
   };
 
@@ -416,6 +699,9 @@ function InventoryContent() {
     try {
       // In a real app, this would add to shopping list
       showNotification(`${item.name} added to shopping list! 🛒`, 'success');
+      
+      // Track adding item to shopping list
+      trackEvent('inventory_to_shopping_list', 'inventory', item.category);
     } catch (error) {
       console.error('Error adding to shopping list:', error);
       handleError(new Error('Failed to add to shopping list'));
@@ -425,6 +711,10 @@ function InventoryContent() {
   const handleScanBarcode = () => {
     // Simulate barcode scanning functionality
     showNotification('📱 Barcode scanner opening... (Feature coming soon!)', 'info');
+    
+    // Track barcode scan attempt
+    trackEvent('barcode_scan_initiated', 'inventory', 'feature_demo');
+    
     // In a real app, this would open camera/barcode scanner
     // For now, we'll simulate adding a scanned item
     setTimeout(() => {
@@ -442,11 +732,21 @@ function InventoryContent() {
       };
       setItems(prev => [scannedItem, ...prev]);
       showNotification('✅ Product scanned and added to inventory!', 'success');
+      
+      // Track successful barcode scan
+      trackEvent('barcode_scan_success', 'inventory', 'demo_item');
     }, 2000);
   };
 
   const handleAddItem = () => {
+    console.log('Add Item button clicked!');
+    console.log('Current showAddForm state:', showAddForm);
     setShowAddForm(true);
+    console.log('Setting showAddForm to true');
+    showNotification('🔧 Opening add item modal...', 'info');
+    
+    // Track add item modal open
+    trackEvent('add_item_modal_opened', 'inventory');
   };
 
   const handleAddItemSubmit = (itemData: Omit<InventoryItem, 'id' | 'status'>) => {
@@ -472,10 +772,16 @@ function InventoryContent() {
 
     setItems(prev => [newItem, ...prev]);
     showNotification(`✅ ${itemData.name} added to inventory!`, 'success');
+    
+    // Track inventory item addition
+    trackEvent('inventory_item_added', 'inventory', itemData.category, itemData.quantity);
   };
 
   const handleEditItem = (item: InventoryItem) => {
     showNotification(`✏️ Editing ${item.name}... (Feature coming soon!)`, 'info');
+    
+    // Track edit item attempt
+    trackEvent('inventory_item_edit_initiated', 'inventory', item.category);
     // In a real app, this would open an edit modal
   };
 
@@ -484,6 +790,9 @@ function InventoryContent() {
     setSelectedCategory('all');
     setSelectedStatus('all');
     showNotification('🔄 All filters cleared', 'info');
+    
+    // Track filter clearing
+    trackEvent('inventory_filters_cleared', 'inventory');
   };
 
   // Calculate stats
@@ -511,7 +820,7 @@ function InventoryContent() {
           <p className="text-gray-600 mb-6">
             Please sign in to manage your food inventory and track expiration dates.
           </p>
-          <Button onClick={() => router.push('/auth/signin')}>
+          <Button onClick={() => router.push('/auth/signin')} className="text-white font-semibold rounded-lg transition-all hover:opacity-90" style={{ backgroundColor: '#91c11e' }}>
             Sign In to Continue
           </Button>
         </div>
@@ -520,8 +829,8 @@ function InventoryContent() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Add Item Modal */}
         <AddItemModal 
           isOpen={showAddForm} 
@@ -529,176 +838,206 @@ function InventoryContent() {
           onAdd={handleAddItemSubmit}
         />
 
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-            <Package className="h-8 w-8 text-blue-600" />
+        {/* Mobile-Optimized Header */}
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2 flex items-center gap-2" style={{ color: '#3c3c3c' }}>
+            <Package className="h-6 w-6 sm:h-8 sm:w-8" style={{ color: '#91c11e' }} />
             Food Inventory
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600" style={{ color: '#888888' }}>
             Track your food items and never let anything expire again
           </p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
-          <Card>
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Items</p>
-                  <p className="text-2xl font-bold">{stats.total}</p>
+        {/* Mobile-First Stats Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+          <Card className="border border-gray-100 hover:shadow-md transition-shadow">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div className="mb-2 sm:mb-0">
+                  <p className="text-xs sm:text-sm font-medium" style={{ color: '#888888' }}>Total Items</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold" style={{ color: '#3c3c3c' }}>{stats.total}</p>
                 </div>
-                <Package className="h-8 w-8 text-blue-500" />
+                <Package className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 self-end sm:self-auto" style={{ color: '#91c11e' }} />
               </div>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Fresh</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.fresh}</p>
+          <Card className="border border-gray-100 hover:shadow-md transition-shadow">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div className="mb-2 sm:mb-0">
+                  <p className="text-xs sm:text-sm font-medium" style={{ color: '#888888' }}>Fresh</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold" style={{ color: '#659a41' }}>{stats.fresh}</p>
                 </div>
-                <CheckCircle className="h-8 w-8 text-green-500" />
+                <CheckCircle className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 self-end sm:self-auto" style={{ color: '#659a41' }} />
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Expiring Soon</p>
-                  <p className="text-2xl font-bold text-yellow-600">{stats.expiring}</p>
+          <Card className="border border-gray-100 hover:shadow-md transition-shadow">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div className="mb-2 sm:mb-0">
+                  <p className="text-xs sm:text-sm font-medium" style={{ color: '#888888' }}>Expiring Soon</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold" style={{ color: '#E8DE10' }}>{stats.expiring}</p>
                 </div>
-                <Clock className="h-8 w-8 text-yellow-500" />
+                <Clock className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 self-end sm:self-auto" style={{ color: '#E8DE10' }} />
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Expired</p>
-                  <p className="text-2xl font-bold text-red-600">{stats.expired}</p>
+          <Card className="border border-gray-100 hover:shadow-md transition-shadow">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div className="mb-2 sm:mb-0">
+                  <p className="text-xs sm:text-sm font-medium" style={{ color: '#888888' }}>Expired</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold" style={{ color: '#ef9d17' }}>{stats.expired}</p>
                 </div>
-                <AlertTriangle className="h-8 w-8 text-red-500" />
+                <AlertTriangle className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 self-end sm:self-auto" style={{ color: '#ef9d17' }} />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Actions Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        {/* Mobile-Optimized Actions Bar */}
+        <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2 sm:gap-4 mb-6">
           <Button 
             onClick={handleAddItem}
-            className="flex items-center gap-2"
+            className="flex items-center justify-center gap-2 text-white font-semibold rounded-lg transition-all hover:opacity-90 h-10 sm:h-auto"
+            style={{ backgroundColor: '#91c11e' }}
           >
             <Plus className="h-4 w-4" />
-            Add Item
+            <span className="hidden sm:inline">Add Item</span>
+            <span className="sm:hidden">Add</span>
           </Button>
           <Button 
             onClick={handleScanBarcode}
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+            className="flex items-center justify-center gap-2 text-white font-semibold rounded-lg transition-all hover:opacity-90 h-10 sm:h-auto"
+            style={{ backgroundColor: '#659a41' }}
           >
             <Scan className="h-4 w-4" />
-            Scan Barcode
+            <span className="hidden sm:inline">Scan Barcode</span>
+            <span className="sm:hidden">Scan</span>
           </Button>
           <Button 
             onClick={() => router.push('/shopping-list')}
-            className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700"
+            className="flex items-center justify-center gap-2 text-white font-semibold rounded-lg transition-all hover:opacity-90 h-10 sm:h-auto"
+            style={{ backgroundColor: '#ef9d17' }}
           >
             <ShoppingCart className="h-4 w-4" />
-            Shopping List
+            <span className="hidden sm:inline">Shopping List</span>
+            <span className="sm:hidden">Shop</span>
           </Button>
           <Button 
             onClick={clearAllFilters}
-            className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700"
+            className="flex items-center justify-center gap-2 bg-white border-2 font-semibold rounded-lg transition-all hover:bg-gray-50 h-10 sm:h-auto"
+            style={{ borderColor: '#91c11e', color: '#91c11e' }}
           >
             <Filter className="h-4 w-4" />
-            Clear Filters
+            <span className="hidden sm:inline">Clear Filters</span>
+            <span className="sm:hidden">Clear</span>
           </Button>
         </div>
 
-        {/* Search and Filters */}
+        {/* Mobile-Optimized Search and Filters */}
         <div className="mb-6 space-y-4">
           {/* Search Bar */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4" style={{ color: '#888888' }} />
             <Input
               type="text"
               placeholder="Search items, categories, or locations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 bg-white border-2 border-gray-200 rounded-lg focus:border-2 transition-colors h-10 sm:h-auto text-sm sm:text-base"
+              style={{ 
+                color: '#3c3c3c',
+                '--tw-ring-color': '#91c11e'
+              } as React.CSSProperties}
+              onFocus={(e) => e.target.style.borderColor = '#91c11e'}
+              onBlur={(e) => e.target.style.borderColor = '#cccccc'}
             />
           </div>
 
-          {/* Filter Buttons */}
-          <div className="flex flex-wrap gap-2">
+          {/* Mobile-Friendly Filter Buttons */}
+          <div className="space-y-3">
             {/* Category Filters */}
-            {categories.map((category) => (
-              <Button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`${
-                  selectedCategory === category
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                {category === 'all' ? 'All Categories' : category}
-              </Button>
-            ))}
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-2">Categories</p>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((category) => (
+                  <Button
+                    key={category}
+                    onClick={() => setSelectedCategory(category)}
+                    className={`text-xs sm:text-sm font-semibold rounded-lg transition-all h-8 sm:h-auto ${
+                      selectedCategory === category
+                        ? 'text-white'
+                        : 'bg-white border-2 hover:bg-gray-50'
+                    }`}
+                    style={selectedCategory === category 
+                      ? { backgroundColor: '#91c11e' }
+                      : { borderColor: '#91c11e', color: '#91c11e' }
+                    }
+                  >
+                    {category === 'all' ? 'All Categories' : category}
+                  </Button>
+                ))}
+              </div>
+            </div>
             
             {/* Status Filters */}
-            <div className="w-full sm:w-auto border-l border-gray-300 pl-2 ml-2">
-              {[
-                { id: 'all', label: 'All Status', color: 'gray' },
-                { id: 'fresh', label: 'Fresh', color: 'green' },
-                { id: 'expiring', label: 'Expiring', color: 'yellow' },
-                { id: 'expired', label: 'Expired', color: 'red' }
-              ].map(({ id, label, color }) => (
-                <Button
-                  key={id}
-                  onClick={() => setSelectedStatus(id)}
-                  className={`mr-2 ${
-                    selectedStatus === id
-                      ? `bg-${color}-600 text-white`
-                      : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {label}
-                </Button>
-              ))}
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-2">Status</p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: 'all', label: 'All Status', color: '#3c3c3c' },
+                  { id: 'fresh', label: 'Fresh', color: '#659a41' },
+                  { id: 'expiring', label: 'Expiring', color: '#E8DE10' },
+                  { id: 'expired', label: 'Expired', color: '#ef9d17' }
+                ].map(({ id, label, color }) => (
+                  <Button
+                    key={id}
+                    onClick={() => setSelectedStatus(id)}
+                    className={`text-xs sm:text-sm font-semibold rounded-lg transition-all h-8 sm:h-auto ${
+                      selectedStatus === id
+                        ? 'text-white'
+                        : 'bg-white border-2 hover:bg-gray-50'
+                    }`}
+                    style={selectedStatus === id 
+                      ? { backgroundColor: color }
+                      : { borderColor: color, color: color }
+                    }
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Results Count */}
-        <div className="mb-6">
-          <p className="text-gray-600">
+        <div className="mb-4 sm:mb-6">
+          <p className="text-sm sm:text-base text-gray-600">
             Showing {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}
             {searchQuery && ` for "${searchQuery}"`}
           </p>
         </div>
 
-        {/* Inventory Grid */}
+        {/* Mobile-Optimized Inventory Grid */}
         {filteredItems.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredItems.map((item) => (
               <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                <CardContent className="p-4">
+                <CardContent className="p-3 sm:p-4">
                   <div className="flex items-start gap-3">
                     {/* Item Image */}
                     <div className="flex-shrink-0">
                       <img
                         src={item.image || 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=60&h=60&fit=crop&crop=center'}
                         alt={item.name}
-                        className="w-16 h-16 rounded-lg object-cover"
+                        className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.src = 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=60&h=60&fit=crop&crop=center';
@@ -709,9 +1048,9 @@ function InventoryContent() {
                     {/* Item Details */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-semibold text-gray-900 truncate">{item.name}</h3>
+                        <h3 className="font-semibold text-sm sm:text-base text-gray-900 truncate pr-2">{item.name}</h3>
                         <Badge 
-                          className={`ml-2 ${
+                          className={`text-xs flex-shrink-0 ${
                             item.status === 'fresh' ? 'bg-green-100 text-green-700' :
                             item.status === 'expiring' ? 'bg-yellow-100 text-yellow-700' :
                             'bg-red-100 text-red-700'
@@ -721,36 +1060,38 @@ function InventoryContent() {
                         </Badge>
                       </div>
                       
-                      <p className="text-sm text-gray-600 mb-1">{item.category}</p>
-                      <p className="text-sm text-gray-600 mb-2">
+                      <p className="text-xs sm:text-sm text-gray-600 mb-1">{item.category}</p>
+                      <p className="text-xs sm:text-sm text-gray-600 mb-2">
                         {item.quantity} {item.unit} • {item.location}
                       </p>
                       
                       <div className="flex items-center gap-1 text-xs text-gray-500 mb-3">
-                        <Calendar className="h-3 w-3" />
-                        <span>Expires: {new Date(item.expiryDate).toLocaleDateString()}</span>
+                        <Calendar className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">Expires: {new Date(item.expiryDate).toLocaleDateString()}</span>
                       </div>
 
-                      {/* Action Buttons */}
-                      <div className="flex items-center gap-2">
+                      {/* Mobile-Optimized Action Buttons */}
+                      <div className="flex items-center gap-1 sm:gap-2">
                         <Button
                           onClick={() => handleAddToShoppingList(item)}
-                          className="flex-1 text-xs py-1 px-2 h-8"
+                          className="flex-1 text-xs py-1.5 px-2 h-7 sm:h-8 min-w-0"
                         >
-                          <ShoppingCart className="h-3 w-3 mr-1" />
-                          Add to List
+                          <ShoppingCart className="h-3 w-3 mr-1 flex-shrink-0" />
+                          <span className="truncate">Add</span>
                         </Button>
                         <Button
                           onClick={() => handleEditItem(item)}
-                          className="text-xs py-1 px-2 h-8 bg-blue-600 hover:bg-blue-700"
+                          className="text-xs py-1.5 px-2 h-7 sm:h-8 w-8 sm:w-auto bg-blue-600 hover:bg-blue-700 flex-shrink-0"
                         >
                           <Edit className="h-3 w-3" />
+                          <span className="hidden sm:inline sm:ml-1">Edit</span>
                         </Button>
                         <Button
                           onClick={() => handleDeleteItem(item.id)}
-                          className="text-xs py-1 px-2 h-8 bg-red-600 hover:bg-red-700"
+                          className="text-xs py-1.5 px-2 h-7 sm:h-8 w-8 sm:w-auto bg-red-600 hover:bg-red-700 flex-shrink-0"
                         >
                           <Trash2 className="h-3 w-3" />
+                          <span className="hidden sm:inline sm:ml-1">Delete</span>
                         </Button>
                       </div>
                     </div>
@@ -760,16 +1101,16 @@ function InventoryContent() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No items found</h3>
-            <p className="text-gray-600 mb-6">
+          <div className="text-center py-8 sm:py-12">
+            <Package className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">No items found</h3>
+            <p className="text-sm sm:text-base text-gray-600 mb-6 px-4">
               {searchQuery 
                 ? `No items match "${searchQuery}". Try a different search term.`
                 : 'Your inventory is empty. Start by adding some items!'
               }
             </p>
-            <Button onClick={handleAddItem}>
+            <Button onClick={handleAddItem} className="text-white font-semibold rounded-lg transition-all hover:opacity-90" style={{ backgroundColor: '#91c11e' }}>
               <Plus className="h-4 w-4 mr-2" />
               Add Your First Item
             </Button>

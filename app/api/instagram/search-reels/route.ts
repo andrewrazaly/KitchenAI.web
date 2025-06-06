@@ -14,7 +14,7 @@ const RECIPE_REELS_DATABASE = [
     video_versions: [
       {
         type: 101,
-        url: 'https://example.com/video1.mp4',
+        url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
         width: 720,
         height: 1280
       }
@@ -22,7 +22,7 @@ const RECIPE_REELS_DATABASE = [
     image_versions2: {
       candidates: [
         {
-          url: '/api/placeholder/300/400',
+          url: 'https://via.placeholder.com/720x1280/f0f0f0/666666?text=🍝+Chicken+Alfredo',
           width: 720,
           height: 1280
         }
@@ -51,7 +51,7 @@ const RECIPE_REELS_DATABASE = [
     video_versions: [
       {
         type: 101,
-        url: 'https://example.com/video2.mp4',
+        url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
         width: 720,
         height: 1280
       }
@@ -59,7 +59,7 @@ const RECIPE_REELS_DATABASE = [
     image_versions2: {
       candidates: [
         {
-          url: '/api/placeholder/300/400',
+          url: 'https://via.placeholder.com/720x1280/f0f0f0/666666?text=🥑+Avocado+Toast',
           width: 720,
           height: 1280
         }
@@ -88,7 +88,7 @@ const RECIPE_REELS_DATABASE = [
     video_versions: [
       {
         type: 101,
-        url: 'https://example.com/video3.mp4',
+        url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
         width: 720,
         height: 1280
       }
@@ -96,7 +96,7 @@ const RECIPE_REELS_DATABASE = [
     image_versions2: {
       candidates: [
         {
-          url: '/api/placeholder/300/400',
+          url: 'https://via.placeholder.com/720x1280/f0f0f0/666666?text=🥢+Thai+Stir+Fry',
           width: 720,
           height: 1280
         }
@@ -125,7 +125,7 @@ const RECIPE_REELS_DATABASE = [
     video_versions: [
       {
         type: 101,
-        url: 'https://example.com/video4.mp4',
+        url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
         width: 720,
         height: 1280
       }
@@ -133,7 +133,7 @@ const RECIPE_REELS_DATABASE = [
     image_versions2: {
       candidates: [
         {
-          url: '/api/placeholder/300/400',
+          url: 'https://via.placeholder.com/720x1280/f0f0f0/666666?text=🧄+Garlic+Bread',
           width: 720,
           height: 1280
         }
@@ -162,7 +162,7 @@ const RECIPE_REELS_DATABASE = [
     video_versions: [
       {
         type: 101,
-        url: 'https://example.com/video5.mp4',
+        url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
         width: 720,
         height: 1280
       }
@@ -170,7 +170,7 @@ const RECIPE_REELS_DATABASE = [
     image_versions2: {
       candidates: [
         {
-          url: '/api/placeholder/300/400',
+          url: 'https://via.placeholder.com/720x1280/f0f0f0/666666?text=🍓+Smoothie+Bowl',
           width: 720,
           height: 1280
         }
@@ -199,7 +199,7 @@ const RECIPE_REELS_DATABASE = [
     video_versions: [
       {
         type: 101,
-        url: 'https://example.com/video6.mp4',
+        url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
         width: 720,
         height: 1280
       }
@@ -207,7 +207,7 @@ const RECIPE_REELS_DATABASE = [
     image_versions2: {
       candidates: [
         {
-          url: '/api/placeholder/300/400',
+          url: 'https://via.placeholder.com/720x1280/f0f0f0/666666?text=🌮+Taco+Tuesday',
           width: 720,
           height: 1280
         }

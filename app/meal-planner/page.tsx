@@ -309,106 +309,136 @@ function MealPlannerContent() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-            <ChefHat className="h-8 w-8 text-indigo-600" />
-            AI Cooking Assistant
-          </h1>
-          <p className="text-gray-600">
-            Tell me what ingredients you have, and I'll help you create delicious meals!
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Chat Interface */}
-          <div className="lg:col-span-2">
-            <ErrorBoundary>
-              <Suspense fallback={<MealPlannerSkeleton />}>
-                <SimpleMealPlannerChat />
-              </Suspense>
-            </ErrorBoundary>
+    <div className="min-h-screen" style={{ backgroundColor: '#f8f8f8' }}>
+      {/* Header */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-6xl mx-auto">
+            <h1 className="text-3xl font-bold mb-2 flex items-center gap-2" style={{ color: '#3c3c3c' }}>
+              <ChefHat className="h-8 w-8" style={{ color: '#91c11e' }} />
+              AI Cooking Assistant
+            </h1>
+            <p style={{ color: '#888888' }}>
+              Tell me what ingredients you have, and I'll help you create delicious meals!
+            </p>
           </div>
+        </div>
+      </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Quick Tips */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5" />
-                  Cooking Tips
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 text-sm">
-                  <div className="p-3 bg-blue-50 rounded-lg">
-                    <h4 className="font-medium text-blue-900 mb-1">🥘 Be Specific</h4>
-                    <p className="text-blue-800">
-                      Tell me exactly what you have: "chicken breast, rice, broccoli" works better than "some meat and vegetables"
-                    </p>
-                  </div>
-                  <div className="p-3 bg-green-50 rounded-lg">
-                    <h4 className="font-medium text-green-900 mb-1">⏰ Mention Time</h4>
-                    <p className="text-green-800">
-                      Let me know if you're in a hurry: "quick 15-minute meal" or "I have time to cook"
-                    </p>
-                  </div>
-                  <div className="p-3 bg-purple-50 rounded-lg">
-                    <h4 className="font-medium text-purple-900 mb-1">🌶️ Share Preferences</h4>
-                    <p className="text-purple-800">
-                      Tell me about dietary restrictions, spice preferences, or cuisine styles you like
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Chat Interface */}
+            <div className="lg:col-span-2">
+              <ErrorBoundary>
+                <Suspense fallback={<MealPlannerSkeleton />}>
+                  <SimpleMealPlannerChat />
+                </Suspense>
+              </ErrorBoundary>
+            </div>
 
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button 
-                  onClick={() => router.push('/inventory')}
-                  className="w-full justify-start"
-                >
-                  📦 Check My Inventory
-                </Button>
-                <Button 
-                  onClick={() => router.push('/recipes')}
-                  className="w-full justify-start"
-                >
-                  📖 Browse Recipes
-                </Button>
-                <Button 
-                  onClick={() => router.push('/recipes/recipe-reels')}
-                  className="w-full justify-start"
-                >
-                  🎥 Recipe Videos
-                </Button>
-              </CardContent>
-            </Card>
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Quick Tips */}
+              <Card className="border border-gray-100 bg-white shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2" style={{ color: '#3c3c3c' }}>
+                    <Sparkles className="h-5 w-5" style={{ color: '#91c11e' }} />
+                    Cooking Tips
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 text-sm">
+                    <div className="p-3 rounded-lg border-2" style={{ backgroundColor: '#f8fff0', borderColor: '#91c11e' }}>
+                      <h4 className="font-medium mb-1" style={{ color: '#659a41' }}>🥘 Be Specific</h4>
+                      <p style={{ color: '#3c3c3c' }}>
+                        Tell me exactly what you have: "chicken breast, rice, broccoli" works better than "some meat and vegetables"
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg border border-gray-200" style={{ backgroundColor: '#f0f8f0' }}>
+                      <h4 className="font-medium mb-1" style={{ color: '#659a41' }}>⏰ Mention Time</h4>
+                      <p style={{ color: '#3c3c3c' }}>
+                        Let me know if you're in a hurry: "quick 15-minute meal" or "I have time to cook"
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg border border-gray-200" style={{ backgroundColor: '#fff8f0' }}>
+                      <h4 className="font-medium mb-1" style={{ color: '#ef9d17' }}>🌶️ Share Preferences</h4>
+                      <p style={{ color: '#3c3c3c' }}>
+                        Tell me about dietary restrictions, spice preferences, or cuisine styles you like
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-            {/* Example Queries */}
-            <Card>
-              <CardHeader>
-                <CardTitle>💡 Try Asking</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="text-sm text-gray-600 space-y-2">
-                  <li>• "I have chicken, onions, and rice"</li>
-                  <li>• "Quick pasta recipe with what I have"</li>
-                  <li>• "Vegetarian meal with eggs and vegetables"</li>
-                  <li>• "What can I make with leftovers?"</li>
-                  <li>• "Healthy breakfast ideas"</li>
-                  <li>• "30-minute dinner recipes"</li>
-                </ul>
-              </CardContent>
-            </Card>
+              {/* Quick Actions */}
+              <Card className="border border-gray-100 bg-white shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2" style={{ color: '#3c3c3c' }}>
+                    <Bot className="h-5 w-5" style={{ color: '#91c11e' }} />
+                    Quick Actions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <Button
+                      className="w-full text-white font-semibold rounded-lg transition-all hover:opacity-90"
+                      style={{ backgroundColor: '#91c11e' }}
+                      onClick={() => showNotification('🥗 Creating a quick healthy recipe suggestion!', 'success')}
+                    >
+                      <Clock className="h-4 w-4 mr-2" />
+                      Quick 15-min meals
+                    </Button>
+                    <Button
+                      className="w-full bg-white border-2 font-semibold rounded-lg transition-all hover:bg-gray-50"
+                      style={{ borderColor: '#659a41', color: '#659a41' }}
+                      onClick={() => showNotification('🛒 Getting your shopping list ready!', 'info')}
+                    >
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      Generate shopping list
+                    </Button>
+                    <Button
+                      className="w-full bg-white border-2 font-semibold rounded-lg transition-all hover:bg-gray-50"
+                      style={{ borderColor: '#ef9d17', color: '#ef9d17' }}
+                      onClick={() => showNotification('🥘 Planning meals with your ingredients!', 'info')}
+                    >
+                      <Utensils className="h-4 w-4 mr-2" />
+                      Use my inventory
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Stats */}
+              <Card className="border border-gray-100 bg-white shadow-sm">
+                <CardHeader>
+                  <CardTitle style={{ color: '#3c3c3c' }}>Your Progress</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium" style={{ color: '#888888' }}>
+                        Meals Planned This Week
+                      </span>
+                      <span className="font-bold" style={{ color: '#91c11e' }}>7/7</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="h-2 rounded-full" style={{ width: '100%', backgroundColor: '#91c11e' }}></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-center">
+                      <div>
+                        <p className="text-lg font-bold" style={{ color: '#3c3c3c' }}>$89</p>
+                        <p className="text-xs" style={{ color: '#888888' }}>Saved this month</p>
+                      </div>
+                      <div>
+                        <p className="text-lg font-bold" style={{ color: '#3c3c3c' }}>47</p>
+                        <p className="text-xs" style={{ color: '#888888' }}>Recipes tried</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>

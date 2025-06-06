@@ -1,11 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { HomeIcon, BookOpenIcon, ShoppingBagIcon, UserIcon, CalendarDaysIcon } from '@heroicons/react/24/outline';
+import { useAuth } from '../hooks/useAuth';
+import { trackEvent } from './GoogleAnalytics';
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
 
   const navigation = [
     { name: 'Home', href: '/', icon: HomeIcon },
@@ -20,25 +23,80 @@ export default function BottomNav() {
     { name: 'Profile', href: '/profile', icon: UserIcon },
   ];
 
+  const handleNavigation = (href: string, label: string) => {
+    // Track navigation events
+    trackEvent('navigation_click', 'bottom_nav', label);
+    
+    router.push(href);
+  };
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 sm:hidden">
-      <div className="max-w-md mx-auto px-4">
-        <div className="flex justify-between">
-          {navigation.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`${
-                pathname === item.href
-                  ? 'text-indigo-600'
-                  : 'text-gray-400 hover:text-gray-500'
-              } flex flex-col items-center pt-2 pb-1 text-center`}
-            >
-              <item.icon className="h-6 w-6" />
-              <span className="text-xs mt-1 leading-none">{item.name}</span>
-            </Link>
-          ))}
-        </div>
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+      <div className="flex justify-around items-center h-16">
+        {/* Dashboard */}
+        <button
+          onClick={() => handleNavigation('/', 'Dashboard')}
+          className={`flex flex-col items-center justify-center p-2 transition-colors ${
+            pathname === '/' 
+              ? 'text-green-600' 
+              : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
+          <HomeIcon className="h-6 w-6" />
+          <span className="text-xs mt-1">Home</span>
+        </button>
+
+        {/* Instagram/Recipe Search */}
+        <button
+          onClick={() => handleNavigation('/instagram', 'Recipe Search')}
+          className={`flex flex-col items-center justify-center p-2 transition-colors ${
+            pathname === '/instagram' 
+              ? 'text-green-600' 
+              : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
+          <BookOpenIcon className="h-6 w-6" />
+          <span className="text-xs mt-1">Recipes</span>
+        </button>
+
+        {/* Shopping List */}
+        <button
+          onClick={() => handleNavigation('/shopping-list', 'Shopping Lists')}
+          className={`flex flex-col items-center justify-center p-2 transition-colors ${
+            pathname === '/shopping-list' 
+              ? 'text-green-600' 
+              : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
+          <ShoppingBagIcon className="h-6 w-6" />
+          <span className="text-xs mt-1">Lists</span>
+        </button>
+
+        {/* Inventory */}
+        <button
+          onClick={() => handleNavigation('/inventory', 'Inventory')}
+          className={`flex flex-col items-center justify-center p-2 transition-colors ${
+            pathname === '/inventory' 
+              ? 'text-green-600' 
+              : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
+          <CalendarDaysIcon className="h-6 w-6" />
+          <span className="text-xs mt-1">Inventory</span>
+        </button>
+
+        {/* Profile */}
+        <button
+          onClick={() => handleNavigation('/profile', 'Profile')}
+          className={`flex flex-col items-center justify-center p-2 transition-colors ${
+            pathname === '/profile' 
+              ? 'text-green-600' 
+              : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
+          <UserIcon className="h-6 w-6" />
+          <span className="text-xs mt-1">Profile</span>
+        </button>
       </div>
     </nav>
   );

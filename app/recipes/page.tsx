@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
 import { Search, Filter, ChevronRight, Loader2, ChefHat, Heart, Clock, Users, BookOpen, Play, Sparkles } from "lucide-react";
 import { getReelsWithRecipes, SavedReel } from '../../feature_import_instagram/lib/saved-reels-service';
@@ -243,6 +244,28 @@ function RecipesPageContent() {
                 <CardContent>
                   <p className="text-sm" style={{ color: '#888888' }}>
                     Watch step-by-step cooking videos from chefs
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link href="/recipes/enhanced-reels">
+              <Card className="group cursor-pointer transition-all duration-200 hover:shadow-lg border border-gray-100 bg-white hover:scale-105 ring-2 ring-orange-200">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-full bg-gradient-to-r from-orange-500 to-red-500">
+                      <Sparkles className="h-6 w-6 text-white" />
+                    </div>
+                    <CardTitle className="text-lg" style={{ color: '#3c3c3c' }}>
+                      Enhanced Reels ✨
+                      <Badge className="ml-2 text-xs bg-orange-100 text-orange-800">NEW</Badge>
+                    </CardTitle>
+                  </div>
+                  <ChevronRight className="h-5 w-5 transition-colors" style={{ color: '#888888' }} />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm" style={{ color: '#888888' }}>
+                    Premium recipe previews with detailed info & interactions
                   </p>
                 </CardContent>
               </Card>

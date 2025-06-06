@@ -1,5 +1,51 @@
 'use client';
 
+/*
+USER REQUIREMENTS FOR INSTAGRAM PAGE:
+
+1. API Integration:
+   - Use the provided API that takes specific metadata from content creators
+   - API should return real data for creators like @shredhappens
+   - Required data fields from API:
+     * Video (actual video files, not images)
+     * Views count
+     * Likes count  
+     * Caption/headline text
+     * Date posted
+
+2. Display Requirements:
+   - Show videos (not static images) in the reel cards
+   - Display real view counts (like "2.5M", "895.3K", "1.2M")
+   - Display real like counts (like "125.7K", "45.9K", "67.5K") 
+   - Show actual captions from the content creator
+   - Include date posted information
+
+3. Functionality:
+   - Working bookmark functionality to save specific reels for later reference
+   - Users should be able to bookmark individual reels and access them later
+   - Sort function should limit results to top 12 highest or lowest
+   - Sort by: Date Posted, Views, Likes, etc.
+
+4. UI Structure (from provided HTML):
+   - Header: "Reels from @[username]"
+   - Count: "X reels found • Click bookmark icon to save reels"
+   - Sort controls: Dropdown + direction toggle
+   - Grid layout: 1 col mobile, 2 col tablet, 3 col desktop
+   - Each reel card should have:
+     * Video element (not img)
+     * Text overlay with caption at bottom
+     * Bookmark button (top right)
+     * Stats at bottom (views, likes)
+     * Username display
+
+5. Current Issues to Fix:
+   - Replace SimpleReelCard with video-enabled cards
+   - Connect to real API data instead of mock data
+   - Implement actual bookmark saving/loading
+   - Limit sort results to 12 items max
+   - Replace placeholder images with actual videos
+*/
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -72,14 +118,11 @@ export default function InstagramSearchPage() {
       setError(null);
       setHasSearched(true);
       
-      // Use our new API endpoint
-      const response = await fetch(`/api/instagram/search-reels?username=${encodeURIComponent(username.trim())}&count=20`);
+      // Use the real RapidAPI Instagram service
+      const data = await fetchInstagramReels({
+        username_or_id_or_url: username.trim()
+      });
       
-      if (!response.ok) {
-        throw new Error('Failed to search Instagram reels');
-      }
-      
-      const data = await response.json();
       setReelsData(data);
       
     } catch (err: any) {
@@ -154,16 +197,13 @@ export default function InstagramSearchPage() {
       setIsLoading(true);
       setError(null);
       setHasSearched(true);
-      setUsername('recipe_discovery');
+      setUsername('tasty'); // Use a popular food creator for recipe discovery
       
-      // Use our new API endpoint for recipe discovery
-      const response = await fetch(`/api/instagram/search-reels?username=recipe_discovery&count=10`);
+      // Use the real RapidAPI Instagram service for recipe discovery
+      const data = await fetchInstagramReels({
+        username_or_id_or_url: 'tasty'
+      });
       
-      if (!response.ok) {
-        throw new Error('Failed to load recipe reels');
-      }
-      
-      const data = await response.json();
       setReelsData(data);
       
     } catch (err: any) {

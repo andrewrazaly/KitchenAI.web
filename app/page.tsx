@@ -9,6 +9,7 @@ import { Button } from "./components/ui/button";
 import { Badge } from "./components/ui/badge";
 import { Skeleton } from "./components/ui/skeleton";
 import ShoppingListTrigger from './components/ShoppingListTrigger';
+import { VideoReelCard } from './components/VideoReelCard';
 import { 
   ChefHat, 
   Calendar, 
@@ -27,6 +28,9 @@ import {
   Zap
 } from "lucide-react";
 import { useNotification } from './components/Notification';
+import { getSavedReels, SavedReel } from '../feature_import_instagram/lib/saved-reels-service';
+import { useSupabase } from './hooks/useSupabase';
+import { trackEvent } from './components/GoogleAnalytics';
 
 interface DashboardStats {
   totalRecipes: number;
@@ -200,10 +204,13 @@ function DashboardContent() {
   const { showNotification } = useNotification();
   const { handleError } = useErrorHandler();
   const router = useRouter();
+  const supabase = useSupabase();
   
   const [stats, setStats] = useState<DashboardStats>(mockStats);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [recentSavedReels, setRecentSavedReels] = useState<SavedReel[]>([]);
+  const [reelsLoading, setReelsLoading] = useState(false);
 
   // Get display name from user
   const displayName = user?.user_metadata?.full_name || 
@@ -229,6 +236,48 @@ function DashboardContent() {
       loadDashboardData();
     }
   }, [isSignedIn, handleError]);
+
+  // Load recent saved reels
+  useEffect(() => {
+    const loadRecentReels = async () => {
+      if (!isSignedIn) return;
+      
+      try {
+        setReelsLoading(true);
+        const savedReels = await getSavedReels(supabase);
+        
+        // Get the 4 most recent reels
+        const recentReels = savedReels
+          .sort((a, b) => b.savedAt - a.savedAt)
+          .slice(0, 4);
+        
+        setRecentSavedReels(recentReels);
+      } catch (error) {
+        console.error('Error loading recent reels:', error);
+      } finally {
+        setReelsLoading(false);
+      }
+    };
+
+    loadRecentReels();
+  }, [isSignedIn, supabase]);
+
+  const formatTimeAgo = (timestamp: number) => {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    return `${days}d ago`;
+  };
+
+  const handleReelClick = (reel: SavedReel) => {
+    trackEvent('recent_reel_clicked', 'homepage', `reel_${reel.id}`);
+    router.push('/instagram');
+  };
 
   const handleQuickAction = (action: QuickAction) => {
     if (!action.href) {
@@ -435,6 +484,149 @@ function DashboardContent() {
               ))}
             </div>
           </div>
+
+          {/* Trending Recipe Videos Feed */}
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold" style={{ color: '#3c3c3c' }}>
+                🔥 Trending Recipe Videos
+              </h2>
+              <Button 
+                className="font-medium transition-colors hover:bg-gray-50 text-sm px-3 py-1"
+                style={{ color: '#91c11e' }}
+                onClick={() => {
+                  trackEvent('view_all_trending_clicked', 'homepage', 'navigation');
+                  router.push('/instagram');
+                }}
+              >
+                View All
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+              {/* Mock trending recipe videos */}
+              {[
+                {
+                  id: '1',
+                  caption_text: 'This is a low carb sandwich trick that actually works. ZUCCHINI BREADWICH',
+                  user: { username: 'shredhappens', profile_pic_url: '/api/placeholder/32/32' },
+                  view_count: 28800,
+                  like_count: 420,
+                  savedAt: Date.now() - 86400000, // 1 day ago
+                  image_versions2: { candidates: [{ url: '/api/placeholder/300/400' }] }
+                },
+                {
+                  id: '2', 
+                  caption_text: 'Viral feta pasta that broke the internet! So creamy and delicious',
+                  user: { username: 'foodielife_eats', profile_pic_url: '/api/placeholder/32/32' },
+                  view_count: 156000,
+                  like_count: 2800,
+                  savedAt: Date.now() - 172800000, // 2 days ago
+                  image_versions2: { candidates: [{ url: '/api/placeholder/300/400' }] }
+                },
+                {
+                  id: '3',
+                  caption_text: '60-second Thai stir fry that will change your life. Secret sauce revealed!',
+                  user: { username: 'authentic_thai_kitchen', profile_pic_url: '/api/placeholder/32/32' },
+                  view_count: 89000,
+                  like_count: 1200,
+                  savedAt: Date.now() - 259200000, // 3 days ago  
+                  image_versions2: { candidates: [{ url: '/api/placeholder/300/400' }] }
+                },
+                {
+                  id: '4',
+                  caption_text: 'Fluffy Japanese pancakes in 5 minutes! No special ingredients needed',
+                  user: { username: 'tokyo_sweet_cafe', profile_pic_url: '/api/placeholder/32/32' },
+                  view_count: 67000,
+                  like_count: 890,
+                  savedAt: Date.now() - 345600000, // 4 days ago
+                  image_versions2: { candidates: [{ url: '/api/placeholder/300/400' }] }
+                }
+              ].map((reel) => (
+                <VideoReelCard 
+                  key={reel.id}
+                  reel={reel as SavedReel} 
+                  onClick={() => {
+                    trackEvent('trending_video_clicked', 'homepage', `reel_${reel.id}`);
+                    router.push(`/instagram?highlight=${reel.id}`);
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Recently Saved Reels */}
+          {isSignedIn && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold" style={{ color: '#3c3c3c' }}>
+                  Recently Saved Recipes
+                </h2>
+                <Button 
+                  className="font-medium transition-colors hover:bg-gray-50 text-sm px-3 py-1"
+                  style={{ color: '#91c11e' }}
+                  onClick={() => {
+                    trackEvent('view_all_reels_clicked', 'homepage', 'navigation');
+                    router.push('/instagram');
+                  }}
+                >
+                  View All
+                </Button>
+              </div>
+              
+              {reelsLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Card key={i} className="border border-gray-100 bg-white shadow-sm">
+                      <CardContent className="p-0">
+                        <Skeleton className="w-full h-48 rounded-t-lg" />
+                        <div className="p-4">
+                          <Skeleton className="h-4 w-3/4 mb-2" />
+                          <Skeleton className="h-3 w-1/2 mb-2" />
+                          <Skeleton className="h-3 w-1/4" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : recentSavedReels.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                  {recentSavedReels.map((reel) => (
+                    <VideoReelCard 
+                      key={reel.id}
+                      reel={reel} 
+                      onClick={() => handleReelClick(reel)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <Card className="border border-gray-100 bg-white shadow-sm">
+                  <CardContent className="p-8 text-center">
+                    <div className="p-4 rounded-full mx-auto w-fit mb-4" style={{ backgroundColor: '#fff8f0' }}>
+                      <Instagram className="h-8 w-8" style={{ color: '#ef9d17' }} />
+                    </div>
+                    <h3 className="font-semibold text-lg mb-2" style={{ color: '#3c3c3c' }}>
+                      No Saved Recipes Yet
+                    </h3>
+                    <p className="text-sm mb-4" style={{ color: '#888888' }}>
+                      Start saving recipe reels from Instagram to see them here!
+                    </p>
+                    <Button 
+                      className="text-white font-semibold px-6 py-2 rounded-lg transition-all hover:opacity-90"
+                      style={{ backgroundColor: '#91c11e' }}
+                      onClick={() => {
+                        trackEvent('discover_recipes_clicked', 'homepage', 'empty_state');
+                        router.push('/instagram');
+                      }}
+                    >
+                      <Instagram className="h-4 w-4 mr-2" />
+                      Discover Recipes
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
 
           {/* Recent Activity */}
           <Card className="border border-gray-100 bg-white shadow-sm">

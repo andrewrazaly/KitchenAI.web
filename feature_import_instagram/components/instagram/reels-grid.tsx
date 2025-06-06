@@ -1,7 +1,7 @@
 "use client"
 
 import { ReelData, ReelItem } from "../../types/reels"
-import { ReelCard } from "./reel-card"
+import { VideoReelCard } from "./video-reel-card"
 import { useState, useMemo } from "react"
 import {
   Select,
@@ -56,7 +56,7 @@ export function ReelsGrid({ data }: ReelsGridProps) {
   const sortedReels = useMemo(() => {
     if (!data?.data?.items?.length) return []
 
-    return [...data.data.items].sort((a, b) => {
+    const sorted = [...data.data.items].sort((a, b) => {
       const aValue = getSortValue(a, sortField)
       const bValue = getSortValue(b, sortField)
 
@@ -66,6 +66,9 @@ export function ReelsGrid({ data }: ReelsGridProps) {
         return bValue - aValue
       }
     })
+
+    // Limit to top 12 results as requested
+    return sorted.slice(0, 12)
   }, [data, sortField, sortDirection])
 
   const toggleSortDirection = () => {
@@ -90,12 +93,13 @@ export function ReelsGrid({ data }: ReelsGridProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4 pb-4">
+      {/* Sort controls */}
+      <div className="flex items-center gap-3 pb-4">
         <Select
           value={sortField}
           onValueChange={(value) => setSortField(value as SortField)}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[180px] h-10">
             <SelectValue placeholder="Sort by..." />
           </SelectTrigger>
           <SelectContent>
@@ -116,14 +120,16 @@ export function ReelsGrid({ data }: ReelsGridProps) {
             <ArrowDownAZ className="h-4 w-4" />
           )}
         </Button>
-        <div className="text-sm text-muted-foreground">
-          {sortedReels.length} reels
+        <div className="text-sm text-muted-foreground ml-auto">
+          {sortedReels.length} recipe{sortedReels.length !== 1 ? 's' : ''} 
+          {data.data.items.length > 12 && ` (showing top 12)`}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {/* Video grid layout matching your screenshot */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {sortedReels.map((reel) => (
-          <ReelCard key={reel.id} reel={reel} />
+          <VideoReelCard key={reel.id} reel={reel} />
         ))}
       </div>
     </div>

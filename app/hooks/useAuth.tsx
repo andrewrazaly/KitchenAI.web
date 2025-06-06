@@ -21,68 +21,120 @@ export function useAuth() {
   });
 
   useEffect(() => {
-    if (!supabase) return;
+    let isMounted = true;
 
-    // Get initial session
-    const getSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        // In development, check for test session if no real session
-        if (!session && process.env.NODE_ENV === 'development') {
-          const testSession = localStorage.getItem('test-session');
-          if (testSession) {
-            const parsedSession = JSON.parse(testSession);
-            if (parsedSession.expires_at > Date.now()) {
+    const initAuth = async () => {
+      // Check for development test session first
+      if (process.env.NODE_ENV === 'development') {
+        const testSession = localStorage.getItem('test-session');
+        if (testSession) {
+          try {
+            const parsed = JSON.parse(testSession);
+            if (parsed.expires_at > Date.now()) {
               setAuthState({
-                user: parsedSession.user as User,
-                session: parsedSession as Session,
+                user: parsed.user,
+                session: parsed,
                 loading: false,
                 error: null,
               });
               return;
             } else {
-              // Clean up expired test session
               localStorage.removeItem('test-session');
             }
+          } catch (e) {
+            localStorage.removeItem('test-session');
           }
         }
+      }
+
+      if (!supabase || !isMounted) {
+        setAuthState(prev => ({ ...prev, loading: false }));
+        return;
+      }
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
         
-        setAuthState({
-          user: session?.user ?? null,
-          session,
-          loading: false,
-          error: error as AuthError,
-        });
-      } catch (error) {
-        setAuthState({
-          user: null,
-          session: null,
-          loading: false,
-          error: error as AuthError,
-        });
+        if (isMounted) {
+          setAuthState({
+            user: session?.user || null,
+            session,
+            loading: false,
+            error: null,
+          });
+        }
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, session) => {
+            if (isMounted) {
+              setAuthState({
+                user: session?.user || null,
+                session,
+                loading: false,
+                error: null,
+              });
+            }
+          }
+        );
+
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (error: any) {
+        if (isMounted) {
+          setAuthState({
+            user: null,
+            session: null,
+            loading: false,
+            error,
+          });
+        }
       }
     };
 
-    getSession();
+    initAuth();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setAuthState({
-          user: session?.user ?? null,
-          session,
-          loading: false,
-          error: null,
-        });
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+    };
   }, [supabase]);
 
   // Auth methods
   const signIn = async (email: string, password: string) => {
+    // Development-only mock auth for test account
+    if (process.env.NODE_ENV === 'development' && email === 'test@gmail.com' && password === 'test123') {
+      const mockSession = {
+        user: {
+          id: 'test-user-id',
+          email: 'test@gmail.com',
+          created_at: new Date().toISOString(),
+          email_verified: true,
+          phone_verified: false,
+          last_sign_in_at: new Date().toISOString(),
+          aud: 'authenticated',
+          app_metadata: {},
+          user_metadata: {},
+          role: 'authenticated'
+        },
+        access_token: 'mock-access-token',
+        refresh_token: 'mock-refresh-token',
+        expires_at: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
+        token_type: 'bearer',
+        expires_in: 24 * 60 * 60
+      };
+      
+      localStorage.setItem('test-session', JSON.stringify(mockSession));
+      
+      setAuthState({
+        user: mockSession.user,
+        session: mockSession,
+        loading: false,
+        error: null,
+      });
+      
+      return { data: { user: mockSession.user, session: mockSession }, error: null };
+    }
+
     if (!supabase) return { error: new Error('Supabase not initialized') };
     
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -94,6 +146,22 @@ export function useAuth() {
   };
 
   const signUp = async (email: string, password: string) => {
+    // Development-only mock auth for test account
+    if (process.env.NODE_ENV === 'development' && email === 'test@gmail.com' && password === 'test123') {
+      return { 
+        data: { 
+          user: { 
+            id: 'test-user-id', 
+            email: 'test@gmail.com',
+            created_at: new Date().toISOString(),
+            email_verified: true
+          }, 
+          session: null 
+        }, 
+        error: null 
+      };
+    }
+
     if (!supabase) return { error: new Error('Supabase not initialized') };
     
     const signUpOptions: any = {
@@ -117,12 +185,18 @@ export function useAuth() {
   };
 
   const signOut = async () => {
-    if (!supabase) return { error: new Error('Supabase not initialized') };
-    
     // Clear test session in development
     if (process.env.NODE_ENV === 'development') {
       localStorage.removeItem('test-session');
+      setAuthState({
+        user: null,
+        session: null,
+        loading: false,
+        error: null,
+      });
     }
+
+    if (!supabase) return { error: new Error('Supabase not initialized') };
     
     const { error } = await supabase.auth.signOut();
     return { error };
