@@ -326,4 +326,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Built with ❤️ by the KitchenAI Team**
 
-*Making cooking smarter, one meal at a time.* 
+*Making cooking smarter, one meal at a time.* # KitchenAI.web
