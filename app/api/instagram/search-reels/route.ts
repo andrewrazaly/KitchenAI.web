@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Force dynamic rendering for this API route
+export const dynamic = 'force-dynamic';
+
 // Realistic Instagram reel data for recipe content
 const RECIPE_REELS_DATABASE = [
   {
