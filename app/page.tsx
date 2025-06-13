@@ -202,12 +202,14 @@ function DashboardLoadingSkeleton() {
 }
 
 function DashboardContent() {
-  const { user, isSignedIn, displayName, authLoading } = useAuth();
+  const { user, isSignedIn, loading } = useAuth();
   const router = useRouter();
   const { showNotification } = useNotification();
-  const { supabase } = useSupabase();
+  const supabase = useSupabase();
   const { handleError } = useErrorHandler();
   
+  const displayName = user?.email?.split('@')[0] || 'Guest';
+
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>(mockStats);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>(mockRecentActivity);
@@ -235,7 +237,7 @@ function DashboardContent() {
         
         setRecentActivity(mockRecentActivity);
       } catch (error) {
-        handleError(error, 'Failed to load dashboard data');
+        handleError(error);
         setStats(mockStats);
         setRecentActivity(mockRecentActivity);
       } finally {
@@ -256,7 +258,7 @@ function DashboardContent() {
         setRecentSavedReels(reels.slice(0, 4)); // Show first 4 reels
       } catch (error) {
         console.error('Error loading recent reels:', error);
-        handleError(error, 'Failed to load recent reels');
+        handleError(error);
       } finally {
         setReelsLoading(false);
       }
@@ -288,7 +290,7 @@ function DashboardContent() {
         
       } catch (error) {
         console.error('❌ Error loading hashtag reels:', error);
-        handleError(error, `Failed to load ${selectedHashtag} reels`);
+        handleError(error);
         setHashtagReels([]);
       } finally {
         setHashtagReelsLoading(false);
@@ -296,11 +298,11 @@ function DashboardContent() {
     };
 
   useEffect(() => {
-    if (!authLoading) {
+    if (!loading) {
       loadDashboardData();
       loadRecentReels();
     }
-  }, [isSignedIn, authLoading, supabase]);
+  }, [isSignedIn, loading, supabase]);
 
   useEffect(() => {
     loadHashtagReels();
@@ -344,7 +346,7 @@ function DashboardContent() {
 
   const budgetPercentage = Math.round((stats.budgetUsed / stats.weeklyBudget) * 100);
 
-  if (isLoading && !authLoading) {
+  if (isLoading && !loading) {
     return <DashboardLoadingSkeleton />;
   }
 
