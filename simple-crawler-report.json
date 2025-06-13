@@ -1,0 +1,101 @@
+{
+  "working": [
+    {
+      "route": "/",
+      "url": "http://localhost:3000/",
+      "status": 200
+    },
+    {
+      "route": "/recipes",
+      "url": "http://localhost:3000/recipes",
+      "status": 200
+    },
+    {
+      "route": "/collections",
+      "url": "http://localhost:3000/collections",
+      "status": 200
+    },
+    {
+      "route": "/meal-planner",
+      "url": "http://localhost:3000/meal-planner",
+      "status": 200
+    },
+    {
+      "route": "/instagram",
+      "url": "http://localhost:3000/instagram",
+      "status": 200
+    },
+    {
+      "route": "/ai-agent",
+      "url": "http://localhost:3000/ai-agent",
+      "status": 200
+    },
+    {
+      "route": "/inventory",
+      "url": "http://localhost:3000/inventory",
+      "status": 200
+    },
+    {
+      "route": "/profile",
+      "url": "http://localhost:3000/profile",
+      "status": 200
+    },
+    {
+      "route": "/shopping-list",
+      "url": "http://localhost:3000/shopping-list",
+      "status": 200
+    },
+    {
+      "route": "/deals",
+      "url": "http://localhost:3000/deals",
+      "status": 200
+    },
+    {
+      "route": "/agent-directory",
+      "url": "http://localhost:3000/agent-directory",
+      "status": 200
+    },
+    {
+      "route": "/sign-in",
+      "url": "http://localhost:3000/sign-in",
+      "status": 200
+    },
+    {
+      "route": "/sign-up",
+      "url": "http://localhost:3000/sign-up",
+      "status": 200
+    },
+    {
+      "route": "/chat",
+      "url": "http://localhost:3000/chat",
+      "status": 200
+    },
+    {
+      "route": "/grocery-list",
+      "url": "http://localhost:3000/grocery-list",
+      "status": 200
+    },
+    {
+      "route": "/auth",
+      "url": "http://localhost:3000/auth",
+      "status": 200
+    },
+    {
+      "route": "/signin",
+      "url": "http://localhost:3000/signin",
+      "status": 200
+    },
+    {
+      "route": "/signup",
+      "url": "http://localhost:3000/signup",
+      "status": 200
+    },
+    {
+      "route": "/test-page",
+      "url": "http://localhost:3000/test-page",
+      "status": 200
+    }
+  ],
+  "broken": [],
+  "errors": []
+}

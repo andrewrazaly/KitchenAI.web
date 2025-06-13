@@ -45,7 +45,7 @@ const mockEnhancedReels: ReelItem[] = [
     image_versions2: {
       candidates: [
         {
-          url: '/api/placeholder/400/600',
+          url: '/lemon.svg',
           width: 400,
           height: 600
         }
@@ -61,7 +61,7 @@ const mockEnhancedReels: ReelItem[] = [
       pk: 'chef_marco_123',
       username: 'chef_marco_official',
       full_name: 'Chef Marco Romano',
-      profile_pic_url: '/api/placeholder/150/150'
+      profile_pic_url: '/lemon.svg'
     }
   },
   {
@@ -82,7 +82,7 @@ const mockEnhancedReels: ReelItem[] = [
     image_versions2: {
       candidates: [
         {
-          url: '/api/placeholder/400/600',
+          url: '/lemon.svg',
           width: 400,
           height: 600
         }
@@ -98,7 +98,7 @@ const mockEnhancedReels: ReelItem[] = [
       pk: 'foodie_life_456',
       username: 'foodielife_eats',
       full_name: 'Sarah | Foodie Life',
-      profile_pic_url: '/api/placeholder/150/150'
+      profile_pic_url: '/lemon.svg'
     }
   },
   {
@@ -119,7 +119,7 @@ const mockEnhancedReels: ReelItem[] = [
     image_versions2: {
       candidates: [
         {
-          url: '/api/placeholder/400/600',
+          url: '/lemon.svg',
           width: 400,
           height: 600
         }
@@ -135,7 +135,7 @@ const mockEnhancedReels: ReelItem[] = [
       pk: 'thai_kitchen_789',
       username: 'authentic_thai_kitchen',
       full_name: 'Chef Nim | Thai Kitchen',
-      profile_pic_url: '/api/placeholder/150/150'
+      profile_pic_url: '/lemon.svg'
     }
   },
   {
@@ -156,7 +156,7 @@ const mockEnhancedReels: ReelItem[] = [
     image_versions2: {
       candidates: [
         {
-          url: '/api/placeholder/400/600',
+          url: '/lemon.svg',
           width: 400,
           height: 600
         }
@@ -172,7 +172,7 @@ const mockEnhancedReels: ReelItem[] = [
       pk: 'tokyo_sweets_012',
       username: 'tokyo_sweet_cafe',
       full_name: 'Yuki | Tokyo Sweets',
-      profile_pic_url: '/api/placeholder/150/150'
+      profile_pic_url: '/lemon.svg'
     }
   },
   {
@@ -193,7 +193,7 @@ const mockEnhancedReels: ReelItem[] = [
     image_versions2: {
       candidates: [
         {
-          url: '/api/placeholder/400/600',
+          url: '/lemon.svg',
           width: 400,
           height: 600
         }
@@ -209,7 +209,7 @@ const mockEnhancedReels: ReelItem[] = [
       pk: 'pizza_master_345',
       username: 'nypizza_master',
       full_name: 'Tony | NY Pizza Master',
-      profile_pic_url: '/api/placeholder/150/150'
+      profile_pic_url: '/lemon.svg'
     }
   },
   {
@@ -230,7 +230,7 @@ const mockEnhancedReels: ReelItem[] = [
     image_versions2: {
       candidates: [
         {
-          url: '/api/placeholder/400/600',
+          url: '/lemon.svg',
           width: 400,
           height: 600
         }
@@ -246,7 +246,7 @@ const mockEnhancedReels: ReelItem[] = [
       pk: 'sweet_treats_678',
       username: 'homemade_sweets',
       full_name: 'Emma | Sweet Treats',
-      profile_pic_url: '/api/placeholder/150/150'
+      profile_pic_url: '/lemon.svg'
     }
   }
 ];

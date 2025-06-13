@@ -63,11 +63,11 @@ const mockRecipeReels: RecipeReel[] = [
     creator: {
       name: 'Chef Marco',
       username: '@chefmarco_official',
-      avatar: '/api/placeholder/40/40',
+      avatar: '/lemon.svg',
       verified: true
     },
     video: {
-      thumbnail: '/api/placeholder/300/400',
+      thumbnail: '/lemon.svg',
       duration: '0:58',
       url: '#'
     },
@@ -91,11 +91,11 @@ const mockRecipeReels: RecipeReel[] = [
     creator: {
       name: 'FoodieLife',
       username: '@foodielife',
-      avatar: '/api/placeholder/40/40',
+      avatar: '/lemon.svg',
       verified: false
     },
     video: {
-      thumbnail: '/api/placeholder/300/400',
+      thumbnail: '/lemon.svg',
       duration: '1:23',
       url: '#'
     },

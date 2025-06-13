@@ -2,16 +2,15 @@
 
 import React, { useState, useRef } from "react"
 import { Card, CardContent } from "./ui/card"
-import { Badge } from "./ui/badge"
-import { Instagram, Play, Pause, Volume2, VolumeX, Heart, Eye } from "lucide-react"
+import { Play, Pause, Volume2, VolumeX, Heart, Eye } from "lucide-react"
 import { SavedReel } from "../../feature_import_instagram/lib/saved-reels-service"
 
-interface VideoReelCardProps {
+interface HashtagVideoCardProps {
   reel: SavedReel;
   onClick: () => void;
 }
 
-export function VideoReelCard({ reel, onClick }: VideoReelCardProps) {
+export function HashtagVideoCard({ reel, onClick }: HashtagVideoCardProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
   const [isHovered, setIsHovered] = useState(false)
@@ -22,7 +21,7 @@ export function VideoReelCard({ reel, onClick }: VideoReelCardProps) {
     // First, try to get the actual video URL from the reel data
     if (reel.video_versions && reel.video_versions.length > 0) {
       const videoUrl = reel.video_versions[0].url;
-      console.log('🎬 Using real video URL for reel', reel.id, ':', videoUrl);
+      console.log('🎬 Using real video URL for hashtag reel', reel.id, ':', videoUrl);
       return videoUrl;
     }
     
@@ -37,7 +36,7 @@ export function VideoReelCard({ reel, onClick }: VideoReelCardProps) {
     };
     
     const fallbackUrl = recipeVideos[reel.id] || recipeVideos['1'];
-    console.log('📼 Using fallback video URL for reel', reel.id, ':', fallbackUrl);
+    console.log('📼 Using fallback video URL for hashtag reel', reel.id, ':', fallbackUrl);
     return fallbackUrl;
   }
 
@@ -96,7 +95,7 @@ export function VideoReelCard({ reel, onClick }: VideoReelCardProps) {
             preload="metadata"
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
-            onError={() => console.log('Video error for reel:', reel.id)}
+            onError={() => console.log('Video error for hashtag reel:', reel.id)}
           />
 
           {/* Video Controls Overlay */}
@@ -125,16 +124,16 @@ export function VideoReelCard({ reel, onClick }: VideoReelCardProps) {
             )}
           </button>
 
-          {/* Text Overlay - Like your screenshot */}
+          {/* Text Overlay - Like the saved reels */}
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4">
             <div className="text-white">
               <p className="text-sm font-medium leading-tight mb-2">
                 {reel.caption_text && reel.caption_text.length > 60 
                   ? `${reel.caption_text.substring(0, 60)}...`
-                  : reel.caption_text || "Delicious recipe tutorial"
+                  : reel.caption_text || "Recipe from @" + (reel.user?.username || 'chef')
                 }
               </p>
-              {/* Stats like in your screenshot */}
+              {/* Stats like in the saved reels */}
               <div className="flex items-center gap-4 text-xs">
                 <div className="flex items-center gap-1">
                   <Eye className="h-3 w-3" />
@@ -144,25 +143,12 @@ export function VideoReelCard({ reel, onClick }: VideoReelCardProps) {
                   <Heart className="h-3 w-3" />
                   {formatNumber(reel.like_count)}
                 </div>
-                <span>@{reel.user.username}</span>
+                <span>@{reel.user?.username || 'chef'}</span>
               </div>
             </div>
           </div>
 
-          {/* Saved Badge */}
-          <Badge className="absolute top-3 right-3 text-xs px-2 py-1 bg-green-600 text-white">
-            Saved
-          </Badge>
-
-          {/* Playing Indicator */}
-          {isPlaying && (
-            <div className="absolute top-3 left-3">
-              <div className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                LIVE RECIPE
-              </div>
-            </div>
-          )}
+          {/* No badges or indicators - clean like saved reels */}
         </div>
       </CardContent>
     </Card>

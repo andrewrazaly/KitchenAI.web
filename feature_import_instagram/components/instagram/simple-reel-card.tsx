@@ -27,7 +27,7 @@ export function SimpleReelCard({ reel }: ReelCardProps) {
     if (reel.image_versions2?.candidates?.length) {
       return reel.image_versions2.candidates[0].url
     }
-    return '/api/placeholder/400/300'
+    return '/lemon.svg'
   }
 
   const handleSave = (e: React.MouseEvent) => {

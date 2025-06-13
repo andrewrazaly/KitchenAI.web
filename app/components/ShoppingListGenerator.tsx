@@ -45,21 +45,20 @@ export default function ShoppingListGenerator({ onListGenerated }: ShoppingListG
     setError(null);
     
     try {
-      // Get mock inventory items for demo
-      const inventoryItems = getMockInventoryItems();
+      // Get mock inventory for demo
+      const mockInventory = getMockInventoryItems();
       
-      const list = await generateShoppingListFromReels(days, inventoryItems, supabase);
+      const list = await generateShoppingListFromReels(days, mockInventory);
       setGeneratedList(list);
       
-      showNotification(`🛒 Shopping list generated! Found ${list.totalItems} items from ${list.sourceReels.length} recipes`, 'success');
+      // Auto-save the generated list
+      await saveShoppingList(list);
       
       if (onListGenerated) {
         onListGenerated(list);
       }
-    } catch (error: any) {
-      console.error('Error generating shopping list:', error);
-      setError(error.message || 'Failed to generate shopping list');
-      showNotification('Failed to generate shopping list. Make sure you have saved some recipe reels recently!', 'error');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate shopping list');
     } finally {
       setIsGenerating(false);
     }
@@ -285,6 +284,29 @@ export default function ShoppingListGenerator({ onListGenerated }: ShoppingListG
                   </Badge>
                 ))}
               </div>
+            </div>
+
+            {/* AI Analysis Summary */}
+            <div className="mt-4 p-4 rounded-lg border-2" style={{ backgroundColor: '#f8fff0', borderColor: '#91c11e' }}>
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="h-4 w-4" style={{ color: '#91c11e' }} />
+                <h4 className="font-semibold text-sm" style={{ color: '#659a41' }}>
+                  AI-Powered Ingredient Analysis
+                </h4>
+              </div>
+              <p className="text-sm" style={{ color: '#3c3c3c' }}>
+                Our AI analyzed <strong>{generatedList.sourceReels.length} Instagram recipe{generatedList.sourceReels.length !== 1 ? 's' : ''}</strong> you saved, 
+                extracted <strong>{generatedList.totalExtracted} ingredients</strong>
+                {generatedList.removedFromInventory > 0 && (
+                  <>, and removed <strong>{generatedList.removedFromInventory} item{generatedList.removedFromInventory !== 1 ? 's' : ''}</strong> you already have</>
+                )}, 
+                organizing them by store sections for efficient shopping.
+              </p>
+              {generatedList.removedFromInventory > 0 && (
+                <div className="mt-2 text-xs" style={{ color: '#888888' }}>
+                  <strong>Already in inventory:</strong> {generatedList.removedItems.join(', ')}
+                </div>
+              )}
             </div>
 
             {/* Confidence Details */}

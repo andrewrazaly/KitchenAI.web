@@ -12,6 +12,10 @@ export interface ShoppingListItem extends ExtractedIngredient {
   storeSection?: string;
   price?: number;
   notes?: string;
+  // Additional properties expected by shopping list UI
+  amount: string;
+  emoji: string;
+  recipeSource?: string;
 }
 
 export interface RecipeAnalysis {
@@ -279,8 +283,50 @@ export function createShoppingListItems(ingredients: ExtractedIngredient[]): Sho
     ...ingredient,
     id: `${ingredient.standardizedName}-${Date.now()}-${Math.random()}`,
     checked: false,
-    storeSection: getStoreSection(ingredient.category || 'Other')
+    storeSection: getStoreSection(ingredient.category || 'Other'),
+    amount: ingredient.quantity || '',
+    emoji: getIngredientEmoji(ingredient.name),
+    recipeSource: undefined
   }));
+}
+
+// Get emoji for ingredient
+function getIngredientEmoji(name: string): string {
+  const emojiMap: Record<string, string> = {
+    'tomato': '🍅', 'tomatoes': '🍅',
+    'onion': '🧅', 'onions': '🧅',
+    'garlic': '🧄',
+    'carrot': '🥕', 'carrots': '🥕',
+    'potato': '🥔', 'potatoes': '🥔',
+    'chicken': '🐔',
+    'beef': '🥩',
+    'fish': '🐟',
+    'cheese': '🧀',
+    'milk': '🥛',
+    'bread': '🍞',
+    'egg': '🥚', 'eggs': '🥚',
+    'rice': '🍚',
+    'pasta': '🍝',
+    'oil': '🫒', 'olive oil': '🫒',
+    'salt': '🧂',
+    'pepper': '🌶️',
+    'lemon': '🍋',
+    'lime': '🍋',
+    'avocado': '🥑',
+    'mushroom': '🍄', 'mushrooms': '🍄',
+    'herbs': '🌿',
+    'basil': '🌿',
+    'parsley': '🌿'
+  };
+  
+  const lowerName = name.toLowerCase();
+  for (const [key, emoji] of Object.entries(emojiMap)) {
+    if (lowerName.includes(key)) {
+      return emoji;
+    }
+  }
+  
+  return '🛒'; // Default shopping cart emoji
 }
 
 function getStoreSection(category: string): string {
@@ -296,14 +342,43 @@ function getStoreSection(category: string): string {
 export function filterAgainstInventory(
   shoppingItems: ShoppingListItem[], 
   inventoryItems: Array<{name: string; quantity: number}>
-): ShoppingListItem[] {
-  return shoppingItems.filter(item => {
-    const existsInInventory = inventoryItems.some(invItem => 
-      invItem.name.toLowerCase().includes(item.standardizedName?.toLowerCase() || item.name.toLowerCase()) ||
-      (item.standardizedName?.toLowerCase() || item.name.toLowerCase()).includes(invItem.name.toLowerCase())
-    );
-    return !existsInInventory;
+): { filteredItems: ShoppingListItem[]; removedCount: number; removedItems: string[] } {
+  const removedItems: string[] = [];
+  
+  const filteredItems = shoppingItems.filter(item => {
+    const itemName = (item.standardizedName || item.name).toLowerCase();
+    
+    const existsInInventory = inventoryItems.some(invItem => {
+      const invName = invItem.name.toLowerCase();
+      
+      // Check for exact matches or partial matches
+      const isMatch = invName.includes(itemName) || 
+                     itemName.includes(invName) ||
+                     // Check for common variations
+                     (itemName.includes('chicken') && invName.includes('chicken')) ||
+                     (itemName.includes('onion') && invName.includes('onion')) ||
+                     (itemName.includes('tomato') && invName.includes('tomato')) ||
+                     (itemName.includes('garlic') && invName.includes('garlic')) ||
+                     (itemName.includes('oil') && invName.includes('oil')) ||
+                     (itemName.includes('salt') && invName.includes('salt')) ||
+                     (itemName.includes('pepper') && invName.includes('pepper'));
+      
+      return isMatch;
+    });
+    
+    if (existsInInventory) {
+      removedItems.push(item.name);
+      return false;
+    }
+    
+    return true;
   });
+  
+  return {
+    filteredItems,
+    removedCount: removedItems.length,
+    removedItems
+  };
 }
 
 // Organize shopping list by store sections

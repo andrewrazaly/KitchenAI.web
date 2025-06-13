@@ -9,7 +9,9 @@ import { Button } from "./components/ui/button";
 import { Badge } from "./components/ui/badge";
 import { Skeleton } from "./components/ui/skeleton";
 import ShoppingListTrigger from './components/ShoppingListTrigger';
+import ExpiringItemsWidget from './components/ExpiringItemsWidget';
 import { VideoReelCard } from './components/VideoReelCard';
+import { HashtagVideoCard } from './components/HashtagVideoCard';
 import { 
   ChefHat, 
   Calendar, 
@@ -200,98 +202,144 @@ function DashboardLoadingSkeleton() {
 }
 
 function DashboardContent() {
-  const { isSignedIn, loading: authLoading, user } = useAuth();
-  const { showNotification } = useNotification();
-  const { handleError } = useErrorHandler();
+  const { user, isSignedIn, displayName, authLoading } = useAuth();
   const router = useRouter();
-  const supabase = useSupabase();
+  const { showNotification } = useNotification();
+  const { supabase } = useSupabase();
+  const { handleError } = useErrorHandler();
   
-  const [stats, setStats] = useState<DashboardStats>(mockStats);
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStats>(mockStats);
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>(mockRecentActivity);
   const [recentSavedReels, setRecentSavedReels] = useState<SavedReel[]>([]);
-  const [reelsLoading, setReelsLoading] = useState(false);
+  const [reelsLoading, setReelsLoading] = useState(true);
+  const [hashtagReels, setHashtagReels] = useState<any[]>([]);
+  const [hashtagReelsLoading, setHashtagReelsLoading] = useState(false);
+  const [selectedHashtag, setSelectedHashtag] = useState('healthyrecipes');
 
-  // Get display name from user
-  const displayName = user?.user_metadata?.full_name || 
-                     user?.email?.split('@')[0] || 
-                     'Chef';
-
-  useEffect(() => {
     const loadDashboardData = async () => {
       try {
         setIsLoading(true);
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setStats(mockStats);
+        
+        if (isSignedIn && supabase) {
+          try {
+            // Load user-specific data here
+            setStats(mockStats);
+          } catch (error) {
+            console.warn('Using mock data due to database error:', error);
+            setStats(mockStats);
+          }
+        } else {
+          setStats(mockStats);
+        }
+        
         setRecentActivity(mockRecentActivity);
       } catch (error) {
-        handleError(error);
+        handleError(error, 'Failed to load dashboard data');
+        setStats(mockStats);
+        setRecentActivity(mockRecentActivity);
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (isSignedIn) {
-      loadDashboardData();
-    }
-  }, [isSignedIn, handleError]);
-
-  // Load recent saved reels
-  useEffect(() => {
     const loadRecentReels = async () => {
-      if (!isSignedIn) return;
+      if (!isSignedIn) {
+        setReelsLoading(false);
+        return;
+      }
       
       try {
         setReelsLoading(true);
-        const savedReels = await getSavedReels(supabase);
-        
-        // Get the 4 most recent reels
-        const recentReels = savedReels
-          .sort((a, b) => b.savedAt - a.savedAt)
-          .slice(0, 4);
-        
-        setRecentSavedReels(recentReels);
+        const reels = await getSavedReels();
+        console.log('📊 Loaded saved reels for homepage:', reels);
+        setRecentSavedReels(reels.slice(0, 4)); // Show first 4 reels
       } catch (error) {
         console.error('Error loading recent reels:', error);
+        handleError(error, 'Failed to load recent reels');
       } finally {
         setReelsLoading(false);
       }
     };
 
-    loadRecentReels();
-  }, [isSignedIn, supabase]);
+    const loadHashtagReels = async () => {
+      try {
+        setHashtagReelsLoading(true);
+        console.log('🏷️ Loading hashtag reels for:', selectedHashtag);
+        
+        const response = await fetch(`/api/instagram/hashtag-reels?hashtag=${selectedHashtag}`);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ Hashtag reels API error:', response.status, errorText);
+          throw new Error(`Failed to load hashtag reels: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('✅ Hashtag reels API response:', data);
+        
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        
+        const reels = data.reels || [];
+        console.log(`📱 Found ${reels.length} reels for #${selectedHashtag}`);
+        setHashtagReels(reels);
+        
+      } catch (error) {
+        console.error('❌ Error loading hashtag reels:', error);
+        handleError(error, `Failed to load ${selectedHashtag} reels`);
+        setHashtagReels([]);
+      } finally {
+        setHashtagReelsLoading(false);
+      }
+    };
+
+  useEffect(() => {
+    if (!authLoading) {
+      loadDashboardData();
+      loadRecentReels();
+    }
+  }, [isSignedIn, authLoading, supabase]);
+
+  useEffect(() => {
+    loadHashtagReels();
+  }, [selectedHashtag]);
 
   const formatTimeAgo = (timestamp: number) => {
     const now = Date.now();
     const diff = now - timestamp;
-    const minutes = Math.floor(diff / (1000 * 60));
     const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     
-    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 1) return 'Just now';
     if (hours < 24) return `${hours}h ago`;
-    return `${days}d ago`;
+    return `${Math.floor(hours / 24)}d ago`;
   };
 
   const handleReelClick = (reel: SavedReel) => {
-    trackEvent('recent_reel_clicked', 'homepage', `reel_${reel.id}`);
-    router.push('/instagram');
+    trackEvent('saved_reel_clicked', 'homepage', `reel_${reel.id}`);
+    router.push(`/recipes/${reel.id}?source=saved`);
   };
 
   const handleQuickAction = (action: QuickAction) => {
-    if (!action.href) {
-      showNotification(`${action.title} - Coming soon!`, 'info');
-      return;
-    }
-    
+    trackEvent('quick_action_clicked', 'homepage', action.id);
     router.push(action.href);
-    showNotification(`Navigating to ${action.title}...`, 'success');
   };
 
   const handleShoppingListTrigger = () => {
-    router.push('/recipes?generateShoppingList=true');
-    showNotification('Navigating to generate shopping list...', 'success');
+    trackEvent('shopping_list_triggered', 'homepage', 'ai_generation');
+    showNotification('AI shopping list generation started!', 'success');
+  };
+
+  const handleHashtagClick = (hashtag: string) => {
+    setSelectedHashtag(hashtag);
+    trackEvent('hashtag_selected', 'homepage', hashtag);
+  };
+
+  const handleHashtagReelClick = (reel: any) => {
+    trackEvent('hashtag_reel_clicked', 'homepage', `reel_${reel.id}`);
+    // Navigate to recipe detail page with the reel data
+    router.push(`/recipes/${reel.id}?source=hashtag&hashtag=${selectedHashtag}`);
   };
 
   const budgetPercentage = Math.round((stats.budgetUsed / stats.weeklyBudget) * 100);
@@ -330,6 +378,163 @@ function DashboardContent() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto space-y-8">
+          {/* Hashtag Recipe Discovery */}
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold" style={{ color: '#3c3c3c' }}>
+                🔥 Discover by Hashtag
+              </h2>
+              <Button 
+                className="font-medium transition-colors hover:bg-gray-50 text-sm px-3 py-1"
+                style={{ color: '#91c11e' }}
+                onClick={() => {
+                  trackEvent('view_all_hashtag_clicked', 'homepage', 'navigation');
+                  router.push('/instagram');
+                }}
+              >
+                View All
+              </Button>
+            </div>
+            
+            {/* Hashtag Selection */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              {[
+                { tag: 'healthyrecipes', label: '🥗 Healthy Recipes', default: true },
+                { tag: 'lowcarb', label: '🥬 Low Carb' },
+                { tag: 'lowcarbrecipes', label: '🥒 Low Carb Recipes' },
+                { tag: 'keto', label: '🥑 Keto' },
+                { tag: 'ketorecipes', label: '🧀 Keto Recipes' },
+                { tag: 'goodmoodfood', label: '😊 Good Mood Food' }
+              ].map((hashtag) => (
+                <Button
+                  key={hashtag.tag}
+                  onClick={() => {
+                    setSelectedHashtag(hashtag.tag);
+                    trackEvent('hashtag_selected', 'homepage', hashtag.tag);
+                  }}
+                  className={`text-sm px-4 py-2 rounded-full transition-all ${
+                    selectedHashtag === hashtag.tag
+                      ? 'text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  style={selectedHashtag === hashtag.tag ? { backgroundColor: '#91c11e' } : {}}
+                >
+                  {hashtag.label}
+                </Button>
+              ))}
+            </div>
+            
+            {/* Loading State */}
+            {hashtagReelsLoading && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="bg-gray-200 aspect-[9/16] rounded-lg mb-2"></div>
+                    <div className="bg-gray-200 h-4 rounded mb-1"></div>
+                    <div className="bg-gray-200 h-3 rounded w-3/4"></div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Hashtag Recipe Videos */}
+            {!hashtagReelsLoading && hashtagReels.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                {hashtagReels.map((reel) => (
+                  <HashtagVideoCard 
+                    key={reel.id}
+                    reel={reel as SavedReel} 
+                    onClick={() => {
+                      trackEvent('hashtag_video_clicked', 'homepage', `${selectedHashtag}_${reel.id}`);
+                      router.push(`/recipes/${reel.id}`);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+            
+            {/* No Results */}
+            {!hashtagReelsLoading && hashtagReels.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                <p>No recent videos found for #{selectedHashtag}</p>
+                <p className="text-sm mt-1">Try selecting a different hashtag</p>
+              </div>
+            )}
+          </div>
+
+          {/* Recently Saved Reels */}
+          {isSignedIn && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold" style={{ color: '#3c3c3c' }}>
+                  Recently Saved Recipes
+                </h2>
+                <Button 
+                  className="font-medium transition-colors hover:bg-gray-50 text-sm px-3 py-1"
+                  style={{ color: '#91c11e' }}
+                  onClick={() => {
+                    trackEvent('view_all_reels_clicked', 'homepage', 'navigation');
+                    router.push('/instagram');
+                  }}
+                >
+                  View All
+                </Button>
+              </div>
+              
+              {reelsLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Card key={i} className="border border-gray-100 bg-white shadow-sm">
+                      <CardContent className="p-0">
+                        <Skeleton className="w-full h-48 rounded-t-lg" />
+                        <div className="p-4">
+                          <Skeleton className="h-4 w-3/4 mb-2" />
+                          <Skeleton className="h-3 w-1/2 mb-2" />
+                          <Skeleton className="h-3 w-1/4" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : recentSavedReels.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                  {recentSavedReels.map((reel) => (
+                    <VideoReelCard 
+                      key={reel.id}
+                      reel={reel} 
+                      onClick={() => handleReelClick(reel)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <Card className="border border-gray-100 bg-white shadow-sm">
+                  <CardContent className="p-8 text-center">
+                    <div className="p-4 rounded-full mx-auto w-fit mb-4" style={{ backgroundColor: '#fff8f0' }}>
+                      <Instagram className="h-8 w-8" style={{ color: '#ef9d17' }} />
+                    </div>
+                    <h3 className="font-semibold text-lg mb-2" style={{ color: '#3c3c3c' }}>
+                      No Saved Recipes Yet
+                    </h3>
+                    <p className="text-sm mb-4" style={{ color: '#888888' }}>
+                      Start saving recipe reels from Instagram to see them here!
+                    </p>
+                    <Button 
+                      className="text-white font-semibold px-6 py-2 rounded-lg transition-all hover:opacity-90"
+                      style={{ backgroundColor: '#91c11e' }}
+                      onClick={() => {
+                        trackEvent('discover_recipes_clicked', 'homepage', 'empty_state');
+                        router.push('/instagram');
+                      }}
+                    >
+                      <Instagram className="h-4 w-4 mr-2" />
+                      Discover Recipes
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
           {/* Stats Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             <Card className="border border-gray-100 bg-white shadow-sm">
@@ -424,6 +629,11 @@ function DashboardContent() {
             </Card>
           </div>
 
+          {/* Expiring Items Widget */}
+          <div>
+            <ExpiringItemsWidget />
+          </div>
+
           {/* AI Shopping List Trigger - Prominent Homepage Feature */}
           <div>
             <ShoppingListTrigger 
@@ -484,149 +694,6 @@ function DashboardContent() {
               ))}
             </div>
           </div>
-
-          {/* Trending Recipe Videos Feed */}
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold" style={{ color: '#3c3c3c' }}>
-                🔥 Trending Recipe Videos
-              </h2>
-              <Button 
-                className="font-medium transition-colors hover:bg-gray-50 text-sm px-3 py-1"
-                style={{ color: '#91c11e' }}
-                onClick={() => {
-                  trackEvent('view_all_trending_clicked', 'homepage', 'navigation');
-                  router.push('/instagram');
-                }}
-              >
-                View All
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-              {/* Mock trending recipe videos */}
-              {[
-                {
-                  id: '1',
-                  caption_text: 'This is a low carb sandwich trick that actually works. ZUCCHINI BREADWICH',
-                  user: { username: 'shredhappens', profile_pic_url: '/api/placeholder/32/32' },
-                  view_count: 28800,
-                  like_count: 420,
-                  savedAt: Date.now() - 86400000, // 1 day ago
-                  image_versions2: { candidates: [{ url: '/api/placeholder/300/400' }] }
-                },
-                {
-                  id: '2', 
-                  caption_text: 'Viral feta pasta that broke the internet! So creamy and delicious',
-                  user: { username: 'foodielife_eats', profile_pic_url: '/api/placeholder/32/32' },
-                  view_count: 156000,
-                  like_count: 2800,
-                  savedAt: Date.now() - 172800000, // 2 days ago
-                  image_versions2: { candidates: [{ url: '/api/placeholder/300/400' }] }
-                },
-                {
-                  id: '3',
-                  caption_text: '60-second Thai stir fry that will change your life. Secret sauce revealed!',
-                  user: { username: 'authentic_thai_kitchen', profile_pic_url: '/api/placeholder/32/32' },
-                  view_count: 89000,
-                  like_count: 1200,
-                  savedAt: Date.now() - 259200000, // 3 days ago  
-                  image_versions2: { candidates: [{ url: '/api/placeholder/300/400' }] }
-                },
-                {
-                  id: '4',
-                  caption_text: 'Fluffy Japanese pancakes in 5 minutes! No special ingredients needed',
-                  user: { username: 'tokyo_sweet_cafe', profile_pic_url: '/api/placeholder/32/32' },
-                  view_count: 67000,
-                  like_count: 890,
-                  savedAt: Date.now() - 345600000, // 4 days ago
-                  image_versions2: { candidates: [{ url: '/api/placeholder/300/400' }] }
-                }
-              ].map((reel) => (
-                <VideoReelCard 
-                  key={reel.id}
-                  reel={reel as SavedReel} 
-                  onClick={() => {
-                    trackEvent('trending_video_clicked', 'homepage', `reel_${reel.id}`);
-                    router.push(`/instagram?highlight=${reel.id}`);
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Recently Saved Reels */}
-          {isSignedIn && (
-            <div>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold" style={{ color: '#3c3c3c' }}>
-                  Recently Saved Recipes
-                </h2>
-                <Button 
-                  className="font-medium transition-colors hover:bg-gray-50 text-sm px-3 py-1"
-                  style={{ color: '#91c11e' }}
-                  onClick={() => {
-                    trackEvent('view_all_reels_clicked', 'homepage', 'navigation');
-                    router.push('/instagram');
-                  }}
-                >
-                  View All
-                </Button>
-              </div>
-              
-              {reelsLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <Card key={i} className="border border-gray-100 bg-white shadow-sm">
-                      <CardContent className="p-0">
-                        <Skeleton className="w-full h-48 rounded-t-lg" />
-                        <div className="p-4">
-                          <Skeleton className="h-4 w-3/4 mb-2" />
-                          <Skeleton className="h-3 w-1/2 mb-2" />
-                          <Skeleton className="h-3 w-1/4" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : recentSavedReels.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                  {recentSavedReels.map((reel) => (
-                    <VideoReelCard 
-                      key={reel.id}
-                      reel={reel} 
-                      onClick={() => handleReelClick(reel)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <Card className="border border-gray-100 bg-white shadow-sm">
-                  <CardContent className="p-8 text-center">
-                    <div className="p-4 rounded-full mx-auto w-fit mb-4" style={{ backgroundColor: '#fff8f0' }}>
-                      <Instagram className="h-8 w-8" style={{ color: '#ef9d17' }} />
-                    </div>
-                    <h3 className="font-semibold text-lg mb-2" style={{ color: '#3c3c3c' }}>
-                      No Saved Recipes Yet
-                    </h3>
-                    <p className="text-sm mb-4" style={{ color: '#888888' }}>
-                      Start saving recipe reels from Instagram to see them here!
-                    </p>
-                    <Button 
-                      className="text-white font-semibold px-6 py-2 rounded-lg transition-all hover:opacity-90"
-                      style={{ backgroundColor: '#91c11e' }}
-                      onClick={() => {
-                        trackEvent('discover_recipes_clicked', 'homepage', 'empty_state');
-                        router.push('/instagram');
-                      }}
-                    >
-                      <Instagram className="h-4 w-4 mr-2" />
-                      Discover Recipes
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
 
           {/* Recent Activity */}
           <Card className="border border-gray-100 bg-white shadow-sm">

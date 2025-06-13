@@ -43,9 +43,14 @@ export interface SavedReel extends ReelItem {
 const STORAGE_KEY = 'saved_reels';
 
 function getFromLocalStorage(): SavedReel[] {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === 'undefined') {
+    return [];
+  }
+  
   const stored = localStorage.getItem(STORAGE_KEY);
-  return stored ? JSON.parse(stored) : [];
+  const parsed = stored ? JSON.parse(stored) : [];
+  
+  return parsed;
 }
 
 function saveToLocalStorage(reels: SavedReel[]) {
@@ -75,21 +80,32 @@ function mapSavedReelRow(item: SavedReelRow): SavedReel {
 export async function getSavedReels(supabase?: SupabaseClient): Promise<SavedReel[]> {
   if (!supabase) {
     // Fallback to localStorage when no supabase client
-    return getFromLocalStorage();
+    const localData = getFromLocalStorage();
+    return localData;
   }
 
   try {
     const { data, error } = await supabase
       .from('saved_reels')
-      .select('*, recipes(*)')
+      .select('*')
       .order('saved_at', { ascending: false });
 
-    if (error) throw error;
-
-    return (data as SavedReelRow[]).map(mapSavedReelRow);
+    if (error) {
+      throw error;
+    }
+    
+    // If database has data, use it
+    if (data && data.length > 0) {
+      return (data as SavedReelRow[]).map(mapSavedReelRow);
+    }
+    
+    // If database is empty, fall back to localStorage
+    const localData = getFromLocalStorage();
+    return localData;
+    
   } catch (error) {
-    console.warn('Falling back to localStorage:', error);
-    return getFromLocalStorage();
+    const localData = getFromLocalStorage();
+    return localData;
   }
 }
 
@@ -270,7 +286,7 @@ export async function getReelsWithRecipes(supabase?: SupabaseClient): Promise<Sa
   try {
     const { data, error } = await supabase
       .from('saved_reels')
-      .select('*, recipes(*)')
+      .select('*')
       .not('recipe_id', 'is', null)
       .order('saved_at', { ascending: false });
 
@@ -295,8 +311,7 @@ export async function getReelsByTag(tag: string, supabase?: SupabaseClient): Pro
   try {
     const { data, error } = await supabase
       .from('saved_reels')
-      .select('*, recipes(*)')
-      .contains('recipes.tags', [tag.toLowerCase()])
+      .select('*')
       .order('saved_at', { ascending: false });
 
     if (error) throw error;
@@ -322,8 +337,7 @@ export async function getReelsByCuisine(cuisine: string, supabase?: SupabaseClie
   try {
     const { data, error } = await supabase
       .from('saved_reels')
-      .select('*, recipes(*)')
-      .eq('recipes.cuisine', cuisine.toLowerCase())
+      .select('*')
       .order('saved_at', { ascending: false });
 
     if (error) throw error;
@@ -364,4 +378,52 @@ export async function addRecipeToReel(
     cuisine: recipe.cuisine,
     tags: recipe.tags
   }, supabase);
+}
+
+// Migration helper: sync localStorage data to database when user signs in
+export async function migrateLocalStorageToDatabase(supabase: SupabaseClient): Promise<void> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const localReels = getFromLocalStorage();
+    if (localReels.length === 0) return;
+
+    // Get existing saved reels from database
+    const existingReels = await getSavedReels(supabase);
+    const existingReelIds = existingReels.map(r => r.id);
+
+    // Save new reels from localStorage to database
+    const newReels = localReels.filter(reel => !existingReelIds.includes(reel.id));
+    
+    let migratedCount = 0;
+    for (const reel of newReels) {
+      try {
+        const { error } = await supabase
+          .from('saved_reels')
+          .insert({
+            user_id: session.user.id,
+            reel_id: reel.id,
+            reel_data: JSON.stringify(reel),
+            saved_at: new Date(reel.savedAt).toISOString()
+          });
+
+        if (error) {
+          console.warn(`Failed to migrate reel ${reel.id}:`, error);
+        } else {
+          migratedCount++;
+        }
+      } catch (error) {
+        console.warn(`Failed to migrate reel ${reel.id}:`, error);
+      }
+    }
+
+    // Clear localStorage after successful migration
+    if (migratedCount > 0) {
+      localStorage.removeItem(STORAGE_KEY);
+      console.log(`Migrated ${migratedCount} reels from localStorage to database`);
+    }
+  } catch (error) {
+    console.error('Error migrating saved reels localStorage data:', error);
+  }
 } 

@@ -125,7 +125,7 @@ export function EnhancedReelCard({ reel }: ReelCardProps) {
     if (reel.image_versions2?.candidates?.length) {
       return reel.image_versions2.candidates[0].url
     }
-    return '/api/placeholder/400/300'
+    return '/lemon.svg'
   }
 
   // Get video URL from video versions
@@ -447,7 +447,7 @@ export function EnhancedReelCard({ reel }: ReelCardProps) {
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <img
-              src={reel.user.profile_pic_url || '/api/placeholder/40/40'}
+              src={reel.user.profile_pic_url || '/lemon.svg'}
               alt={reel.user.username}
               className="w-10 h-10 rounded-full ring-2 ring-orange-200"
             />

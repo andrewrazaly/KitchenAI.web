@@ -21,6 +21,7 @@ const montserrat = Montserrat({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://kitchenai.vercel.app'),
   title: 'KitchenAI - Smart Recipe Discovery & AI Meal Planning',
   description: 'Discover amazing recipes from top food creators, watch interactive cooking videos, and let AI plan your meals. Save recipes, generate smart shopping lists, and master cooking with KitchenAI.',
   keywords: [
@@ -137,6 +138,16 @@ export default function RootLayout({
         />
       </head>
       <body className={`h-full bg-gray-light`}>
+        {/* Google Tag Manager (noscript) */}
+        <noscript>
+          <iframe 
+            src="https://www.googletagmanager.com/ns.html?id=GTM-TR9LZW9F"
+            height="0" 
+            width="0" 
+            style={{ display: 'none', visibility: 'hidden' }}
+          />
+        </noscript>
+        
         <GoogleAnalytics />
         <ErrorBoundary>
           <Providers>

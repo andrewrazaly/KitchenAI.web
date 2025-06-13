@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { ReelsGrid } from '../../../feature_import_instagram/components/instagram/reels-grid';
-import { getSavedReels } from '../../../feature_import_instagram/lib/saved-reels-service';
+import { getSavedReels, migrateLocalStorageToDatabase } from '../../../feature_import_instagram/lib/saved-reels-service';
 import { useSupabase } from '../../hooks/useSupabase';
 import { ReelData } from '../../../feature_import_instagram/types/reels';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
@@ -23,6 +23,16 @@ export default function SavedReelsPage() {
   useEffect(() => {
     loadSavedReels();
   }, [supabase]);
+
+  // Migrate localStorage data to database when user signs in
+  useEffect(() => {
+    if (isSignedIn && supabase) {
+      migrateLocalStorageToDatabase(supabase).then(() => {
+        // Reload saved reels after migration
+        loadSavedReels();
+      });
+    }
+  }, [isSignedIn, supabase]);
 
   const loadSavedReels = async () => {
     try {

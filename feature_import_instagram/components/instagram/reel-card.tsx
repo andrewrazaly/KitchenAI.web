@@ -81,7 +81,7 @@ export function ReelCard({ reel }: ReelCardProps) {
     if (reel.image_versions2?.candidates?.length) {
       return reel.image_versions2.candidates[0].url
     }
-    return '/api/placeholder/400/300'
+    return '/lemon.svg'
   }
 
   // Format date
@@ -139,40 +139,27 @@ export function ReelCard({ reel }: ReelCardProps) {
   }
 
   const handleVideoLoad = () => {
-    console.log('Video loaded successfully for reel:', reel.id);
-    console.log('Video duration:', videoRef.current?.duration);
-    console.log('Video readyState:', videoRef.current?.readyState);
+    // Video loaded successfully
   }
 
   const handleVideoError = (e: React.SyntheticEvent<HTMLVideoElement>) => {
-    console.error('Video failed to load for reel:', reel.id, e);
-    const video = e.currentTarget;
-    console.error('Video error details:', {
-      error: video.error,
-      networkState: video.networkState,
-      readyState: video.readyState,
-      src: video.src
-    });
     setVideoError(true);
   }
 
   const handleVideoPlay = () => {
-    console.log('Video play event fired for reel:', reel.id);
     setIsPlaying(true);
   }
 
   const handleVideoPause = () => {
-    console.log('Video pause event fired for reel:', reel.id);
     setIsPlaying(false);
   }
 
   const handleVideoCanPlay = () => {
-    console.log('Video can play for reel:', reel.id);
     setVideoError(false);
   }
 
   const handleVideoLoadStart = () => {
-    console.log('Video load start for reel:', reel.id);
+    // Video loading started
   }
 
   // Simulate video progress - always active now
@@ -372,11 +359,11 @@ export function ReelCard({ reel }: ReelCardProps) {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <img
-              src={reel.user.profile_pic_url || '/api/placeholder/32/32'}
+              src={reel.user.profile_pic_url || '/lemon.svg'}
               alt={reel.user.username}
               className="w-8 h-8 rounded-full"
               onError={(e) => {
-                e.currentTarget.src = '/api/placeholder/32/32';
+                e.currentTarget.src = '/lemon.svg';
               }}
             />
             <div>

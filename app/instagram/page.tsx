@@ -64,6 +64,7 @@ import {
   migrateLocalStorageToDatabase,
   SavedCreator 
 } from '../../feature_import_instagram/lib/saved-creators-service';
+import { migrateLocalStorageToDatabase as migrateSavedReelsToDatabase } from '../../feature_import_instagram/lib/saved-reels-service';
 import { toast } from 'sonner';
 
 export default function InstagramSearchPage() {
@@ -87,7 +88,11 @@ export default function InstagramSearchPage() {
   // Migrate localStorage data to database when user signs in
   useEffect(() => {
     if (isSignedIn && supabase) {
-      migrateLocalStorageToDatabase(supabase).then(() => {
+      // Migrate both saved creators and saved reels
+      Promise.all([
+        migrateLocalStorageToDatabase(supabase),
+        migrateSavedReelsToDatabase(supabase)
+      ]).then(() => {
         // Reload creators after migration
         loadSavedCreators();
       });

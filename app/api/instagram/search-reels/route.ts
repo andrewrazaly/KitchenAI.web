@@ -39,7 +39,7 @@ const RECIPE_REELS_DATABASE = [
       pk: 'chef_maria_official',
       username: 'chef_maria_official',
       full_name: 'Chef Maria Rodriguez',
-      profile_pic_url: '/api/placeholder/40/40'
+      profile_pic_url: '/lemon.svg'
     }
   },
   {
@@ -76,7 +76,7 @@ const RECIPE_REELS_DATABASE = [
       pk: 'healthy_kitchen_vibes',
       username: 'healthy_kitchen_vibes',
       full_name: 'Sarah | Healthy Kitchen',
-      profile_pic_url: '/api/placeholder/40/40'
+      profile_pic_url: '/lemon.svg'
     }
   },
   {
@@ -113,7 +113,7 @@ const RECIPE_REELS_DATABASE = [
       pk: 'authentic_thai_kitchen',
       username: 'authentic_thai_kitchen',
       full_name: 'Niran | Thai Kitchen',
-      profile_pic_url: '/api/placeholder/40/40'
+      profile_pic_url: '/lemon.svg'
     }
   },
   {
@@ -150,7 +150,7 @@ const RECIPE_REELS_DATABASE = [
       pk: 'breadmaster_official',
       username: 'breadmaster_official',
       full_name: 'BreadMaster | Carb Life',
-      profile_pic_url: '/api/placeholder/40/40'
+      profile_pic_url: '/lemon.svg'
     }
   },
   {
@@ -187,7 +187,7 @@ const RECIPE_REELS_DATABASE = [
       pk: 'fit_foodie_life',
       username: 'fit_foodie_life',
       full_name: 'Emma | Fit Foodie',
-      profile_pic_url: '/api/placeholder/40/40'
+      profile_pic_url: '/lemon.svg'
     }
   },
   {
@@ -224,7 +224,7 @@ const RECIPE_REELS_DATABASE = [
       pk: 'mexican_mama_kitchen',
       username: 'mexican_mama_kitchen',
       full_name: 'Mama Rosa | Mexican Kitchen',
-      profile_pic_url: '/api/placeholder/40/40'
+      profile_pic_url: '/lemon.svg'
     }
   }
 ];
@@ -290,7 +290,7 @@ export async function GET(request: NextRequest) {
       user_info: {
         username: username,
         full_name: `${username.charAt(0).toUpperCase() + username.slice(1)} | Recipe Creator`,
-        profile_pic_url: '/api/placeholder/150/150',
+        profile_pic_url: '/lemon.svg',
         is_verified: Math.random() > 0.5
       }
     });

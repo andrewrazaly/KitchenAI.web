@@ -1,6 +1,7 @@
 import { getSavedReels, SavedReel } from '../../feature_import_instagram/lib/saved-reels-service';
 import { extractIngredientsFromText, createShoppingListItems, filterAgainstInventory, organizeByStoreSection, ShoppingListItem, RecipeAnalysis } from './ai-ingredient-extractor';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { ParsedIngredient } from './ingredient-parser-service';
 
 export interface GeneratedShoppingList {
   id: string;
@@ -16,6 +17,9 @@ export interface GeneratedShoppingList {
   estimatedCost?: number;
   generatedAt: number;
   confidence: number;
+  totalExtracted: number;
+  removedFromInventory: number;
+  removedItems: string[];
 }
 
 export interface InventoryItem {
@@ -23,6 +27,13 @@ export interface InventoryItem {
   quantity: number;
   unit?: string;
   expiryDate?: string;
+}
+
+export interface ShoppingList {
+  id: string;
+  name: string;
+  items: ShoppingListItem[];
+  created_at: string;
 }
 
 // Get saved reels from the past X days
@@ -106,22 +117,25 @@ export async function generateShoppingListFromReels(
     const uniqueIngredients = removeDuplicateIngredients(allIngredients);
 
     // 4. Filter against existing inventory
-    const neededItems = filterAgainstInventory(uniqueIngredients, inventoryItems);
+    const inventoryResult = filterAgainstInventory(uniqueIngredients, inventoryItems);
 
     // 5. Organize by store sections
-    const organizedItems = organizeByStoreSection(neededItems);
+    const organizedItems = organizeByStoreSection(inventoryResult.filteredItems);
 
     // 6. Calculate average confidence
     const avgConfidence = reelAnalyses.length > 0 ? totalConfidence / reelAnalyses.length : 0;
 
     const shoppingList: GeneratedShoppingList = {
       id: `shopping-list-${Date.now()}`,
-      items: neededItems,
+      items: inventoryResult.filteredItems,
       organizedItems,
       sourceReels: reelAnalyses,
-      totalItems: neededItems.length,
+      totalItems: inventoryResult.filteredItems.length,
       generatedAt: Date.now(),
-      confidence: avgConfidence
+      confidence: avgConfidence,
+      totalExtracted: uniqueIngredients.length,
+      removedFromInventory: inventoryResult.removedCount,
+      removedItems: inventoryResult.removedItems
     };
 
     return shoppingList;
@@ -277,7 +291,7 @@ export function getMockSavedReels(): SavedReel[] {
         pk: 'chef-marco',
         username: 'chefmarco_official',
         full_name: 'Chef Marco',
-        profile_pic_url: '/api/placeholder/40/40'
+        profile_pic_url: '/lemon.svg'
       },
       savedAt: yesterday
     },
@@ -294,7 +308,7 @@ export function getMockSavedReels(): SavedReel[] {
         pk: 'healthy-chef',
         username: 'healthy_chef',
         full_name: 'Healthy Chef',
-        profile_pic_url: '/api/placeholder/40/40'
+        profile_pic_url: '/lemon.svg'
       },
       savedAt: twoDaysAgo
     },
@@ -311,9 +325,88 @@ export function getMockSavedReels(): SavedReel[] {
         pk: 'asian-kitchen',
         username: 'asian_kitchen',
         full_name: 'Asian Kitchen',
-        profile_pic_url: '/api/placeholder/40/40'
+        profile_pic_url: '/lemon.svg'
       },
       savedAt: now
     }
   ];
+}
+
+const STORAGE_KEY = 'kitchenai_shopping_lists';
+
+function getShoppingLists(): ShoppingList[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveShoppingLists(lists: ShoppingList[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(lists));
+  } catch (error) {
+    console.error('Failed to save shopping lists:', error);
+  }
+}
+
+export function getUserShoppingLists(): ShoppingList[] {
+  return getShoppingLists();
+}
+
+export function createShoppingList(name: string, items: ShoppingListItem[] = []): ShoppingList {
+  const newList: ShoppingList = {
+    id: Date.now().toString(),
+    name,
+    items,
+    created_at: new Date().toISOString()
+  };
+
+  const lists = getShoppingLists();
+  lists.unshift(newList);
+  saveShoppingLists(lists);
+  
+  return newList;
+}
+
+export function addItemsToShoppingList(listId: string, items: ShoppingListItem[]): void {
+  const lists = getShoppingLists();
+  const listIndex = lists.findIndex(list => list.id === listId);
+  
+  if (listIndex === -1) return;
+
+  const existingNames = new Set(lists[listIndex].items.map(item => item.name.toLowerCase()));
+  const newItems = items.filter(item => !existingNames.has(item.name.toLowerCase()));
+  
+  lists[listIndex].items.push(...newItems);
+  saveShoppingLists(lists);
+}
+
+export function getDefaultShoppingList(): ShoppingList {
+  return {
+    id: 'default-list',
+    name: 'My Shopping List',
+    items: [],
+    created_at: new Date().toISOString()
+  };
+}
+
+export function convertIngredientsToShoppingItems(
+  ingredients: ParsedIngredient[],
+  recipeTitle: string
+): ShoppingListItem[] {
+  return ingredients
+    .filter(ingredient => ingredient.selected)
+    .map(ingredient => ({
+      id: `shopping-${ingredient.id}`,
+      name: ingredient.name,
+      amount: ingredient.amount,
+      unit: ingredient.unit,
+      emoji: ingredient.emoji,
+      category: ingredient.category,
+      checked: false,
+      recipeSource: recipeTitle
+    }));
 } 

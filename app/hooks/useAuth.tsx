@@ -47,6 +47,18 @@ export function useAuth() {
         }
       }
 
+      // Check if Supabase environment variables are available
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        console.warn('Supabase environment variables not configured. Running in development mode with localStorage fallback.');
+        setAuthState({
+          user: null,
+          session: null,
+          loading: false,
+          error: null,
+        });
+        return;
+      }
+
       if (!supabase || !isMounted) {
         setAuthState(prev => ({ ...prev, loading: false }));
         return;
@@ -81,12 +93,13 @@ export function useAuth() {
           subscription.unsubscribe();
         };
       } catch (error: any) {
+        console.warn('Supabase auth error, falling back to development mode:', error);
         if (isMounted) {
           setAuthState({
             user: null,
             session: null,
             loading: false,
-            error,
+            error: null,
           });
         }
       }
