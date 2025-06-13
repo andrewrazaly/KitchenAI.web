@@ -612,10 +612,74 @@ function InventoryContent() {
       try {
         setIsLoading(true);
         
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Use the actual API instead of mock data
+        const response = await fetch('/api/inventory');
         
-        // Calculate status based on expiry dates
+        if (!response.ok) {
+          throw new Error('Failed to fetch inventory');
+        }
+        
+        const apiItems = await response.json();
+        
+        // If API returns empty array (new user), use mock data as fallback
+        let itemsWithStatus = apiItems;
+        
+        if (apiItems.length === 0) {
+          // Calculate status based on expiry dates for mock data
+          itemsWithStatus = mockInventoryItems.map(item => {
+            const expiryDate = new Date(item.expiryDate);
+            const today = new Date();
+            const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            
+            let status: 'fresh' | 'expiring' | 'expired';
+            if (daysUntilExpiry < 0) {
+              status = 'expired';
+            } else if (daysUntilExpiry <= 3) {
+              status = 'expiring';
+            } else {
+              status = 'fresh';
+            }
+            
+            return { ...item, status };
+          });
+        } else {
+          // Calculate status for API items
+          itemsWithStatus = apiItems.map((item: any) => {
+            const expiryDate = new Date(item.expiry_date || item.expiryDate);
+            const today = new Date();
+            const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            
+            let status: 'fresh' | 'expiring' | 'expired';
+            if (daysUntilExpiry < 0) {
+              status = 'expired';
+            } else if (daysUntilExpiry <= 3) {
+              status = 'expiring';
+            } else {
+              status = 'fresh';
+            }
+            
+            return { 
+              ...item, 
+              status,
+              // Normalize field names
+              name: item.name,
+              category: item.category,
+              quantity: item.quantity,
+              unit: item.unit,
+              expiryDate: item.expiry_date || item.expiryDate,
+              purchaseDate: item.purchase_date || item.purchaseDate,
+              location: item.location,
+              image: item.image
+            };
+          });
+        }
+        
+        setItems(itemsWithStatus);
+        setFilteredItems(itemsWithStatus);
+        
+      } catch (error) {
+        console.error('Error loading inventory:', error);
+        // Fallback to mock data if API fails
         const itemsWithStatus = mockInventoryItems.map(item => {
           const expiryDate = new Date(item.expiryDate);
           const today = new Date();
@@ -635,10 +699,7 @@ function InventoryContent() {
         
         setItems(itemsWithStatus);
         setFilteredItems(itemsWithStatus);
-        
-      } catch (error) {
-        console.error('Error loading inventory:', error);
-        handleError(new Error('Failed to load inventory'));
+        handleError(new Error('Failed to load inventory from API, using fallback data'));
       } finally {
         setIsLoading(false);
       }
@@ -679,6 +740,16 @@ function InventoryContent() {
 
   const handleDeleteItem = async (itemId: string) => {
     try {
+      // Call the API to delete the item
+      const response = await fetch(`/api/inventory?id=${itemId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete item from API');
+      }
+      
+      // Update local state after successful API call
       const deletedItem = items.find(item => item.id === itemId);
       const updatedItems = items.filter(item => item.id !== itemId);
       setItems(updatedItems);
@@ -749,32 +820,73 @@ function InventoryContent() {
     trackEvent('add_item_modal_opened', 'inventory');
   };
 
-  const handleAddItemSubmit = (itemData: Omit<InventoryItem, 'id' | 'status'>) => {
-    // Calculate status based on expiry date
-    const expiryDate = new Date(itemData.expiryDate);
-    const today = new Date();
-    const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    
-    let status: 'fresh' | 'expiring' | 'expired';
-    if (daysUntilExpiry < 0) {
-      status = 'expired';
-    } else if (daysUntilExpiry <= 3) {
-      status = 'expiring';
-    } else {
-      status = 'fresh';
+  const handleAddItemSubmit = async (itemData: Omit<InventoryItem, 'id' | 'status'>) => {
+    try {
+      // Calculate status based on expiry date
+      const expiryDate = new Date(itemData.expiryDate);
+      const today = new Date();
+      const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      
+      let status: 'fresh' | 'expiring' | 'expired';
+      if (daysUntilExpiry < 0) {
+        status = 'expired';
+      } else if (daysUntilExpiry <= 3) {
+        status = 'expiring';
+      } else {
+        status = 'fresh';
+      }
+
+      // Prepare data for API (convert to snake_case for backend)
+      const apiData = {
+        name: itemData.name,
+        category: itemData.category,
+        quantity: itemData.quantity,
+        unit: itemData.unit,
+        expiry_date: itemData.expiryDate,
+        purchase_date: itemData.purchaseDate,
+        location: itemData.location,
+        image: itemData.image
+      };
+
+      // Call the API to add the item
+      const response = await fetch('/api/inventory', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(apiData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add item to API');
+      }
+
+      const newItem = await response.json();
+
+      // Add to local state with normalized field names
+      const normalizedItem: InventoryItem = {
+        id: newItem.id,
+        name: newItem.name,
+        category: newItem.category,
+        quantity: newItem.quantity,
+        unit: newItem.unit,
+        expiryDate: newItem.expiry_date || newItem.expiryDate,
+        purchaseDate: newItem.purchase_date || newItem.purchaseDate,
+        location: newItem.location,
+        status,
+        image: newItem.image
+      };
+
+      setItems(prev => [normalizedItem, ...prev]);
+      showNotification(`✅ ${itemData.name} added to inventory!`, 'success');
+      
+      // Track inventory item addition
+      trackEvent('inventory_item_added', 'inventory', itemData.category, itemData.quantity);
+    } catch (error) {
+      console.error('Error adding item:', error);
+      handleError(new Error('Failed to add item to inventory'));
+      trackEvent('inventory_add_error', 'inventory');
     }
-
-    const newItem: InventoryItem = {
-      ...itemData,
-      id: Date.now().toString(),
-      status
-    };
-
-    setItems(prev => [newItem, ...prev]);
-    showNotification(`✅ ${itemData.name} added to inventory!`, 'success');
-    
-    // Track inventory item addition
-    trackEvent('inventory_item_added', 'inventory', itemData.category, itemData.quantity);
   };
 
   const handleEditItem = (item: InventoryItem) => {
