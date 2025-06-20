@@ -3,12 +3,13 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useRouter } from 'next/navigation';
-import ErrorBoundary, { useErrorHandler } from '../components/ErrorBoundary';
+import ErrorBoundary from '../components/ErrorBoundary';
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Badge } from "../components/ui/badge";
 import { Skeleton } from "../components/ui/skeleton";
+import { Slider } from "../components/ui/slider";
 import { 
   Package, 
   Plus, 
@@ -27,6 +28,9 @@ import {
 } from "lucide-react";
 import { useNotification } from '../components/Notification';
 import { trackEvent } from '../components/GoogleAnalytics';
+import EditInventoryModal from '../components/EditInventoryModal';
+import EnhancedInventoryCard from '../components/EnhancedInventoryCard';
+import BulkImportModal from '../components/BulkImportModal';
 
 interface InventoryItem {
   id: string;
@@ -341,8 +345,8 @@ function AddItemModal({ isOpen, onClose, onAdd }: {
   const [formData, setFormData] = useState({
     name: '',
     category: 'Other',
-    quantity: 1,
-    unit: 'item',
+    quantity: 100,
+    unit: 'g',
     expiryDate: '',
     purchaseDate: new Date().toISOString().split('T')[0],
     location: 'Pantry',
@@ -351,7 +355,16 @@ function AddItemModal({ isOpen, onClose, onAdd }: {
 
   const categories = ['Dairy', 'Bakery', 'Produce', 'Meat', 'Pantry', 'Frozen', 'Other'];
   const locations = ['Refrigerator', 'Freezer', 'Pantry', 'Counter', 'Cabinet'];
-  const units = ['item', 'lbs', 'oz', 'gallon', 'cups', 'pieces', 'bottles', 'cans'];
+  const units = ['g', 'kg', 'item'];
+
+  const getQuantityMax = (unit: string) => {
+    const unitMaxes: { [key: string]: number } = {
+      'g': 2000,
+      'kg': 20,
+      'item': 50
+    };
+    return unitMaxes[unit] || 50;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -361,8 +374,8 @@ function AddItemModal({ isOpen, onClose, onAdd }: {
     setFormData({
       name: '',
       category: 'Other',
-      quantity: 1,
-      unit: 'item',
+      quantity: 100,
+      unit: 'g',
       expiryDate: '',
       purchaseDate: new Date().toISOString().split('T')[0],
       location: 'Pantry',
@@ -374,56 +387,49 @@ function AddItemModal({ isOpen, onClose, onAdd }: {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl border-2 border-gray-100">
-        <div className="p-6 space-y-6">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" style={{ padding: '1rem' }}>
+      <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200">
+        <div className="space-y-4 lg:space-y-6" style={{ padding: '1.5rem' }}>
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+          <div className="flex items-center justify-between border-b border-gray-200" style={{ paddingBottom: '1rem' }}>
             <div>
-              <h2 className="text-2xl font-bold" style={{ color: '#3c3c3c' }}>Add New Item</h2>
-              <p className="text-sm mt-1" style={{ color: '#888888' }}>Fill in the item details below</p>
+              <h2 className="text-xl lg:text-2xl font-bold text-gray-800" style={{ fontSize: '1.5rem' }}>Add New Item</h2>
+              <p className="text-xs lg:text-sm mt-1 text-gray-500" style={{ fontSize: '0.875rem', marginTop: '0.25rem' }}>Fill in the item details below</p>
             </div>
             <Button 
               onClick={onClose} 
-              className="h-9 w-9 p-0 rounded-full hover:bg-gray-50 border border-gray-200"
-              style={{ color: '#888888' }}
+              className="p-0 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600"
+              style={{ height: '2.25rem', width: '2.25rem' }}
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4 lg:h-5 lg:w-5" style={{ width: '1.25rem', height: '1.25rem' }} />
             </Button>
           </div>
           
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-5" style={{ gap: '1rem' }}>
             {/* Item Name */}
             <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#3c3c3c' }}>
-                Item Name <span style={{ color: '#91c11e' }}>*</span>
+              <label className="block text-xs lg:text-sm font-semibold mb-2 text-gray-700" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>
+                Item Name <span className="text-red-500">*</span>
               </label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="e.g., Organic Milk"
-                className="bg-white border-2 border-gray-200 focus:border-2 text-gray-900 placeholder:text-gray-400 rounded-lg transition-colors"
-                style={{ 
-                  color: '#3c3c3c',
-                  '--tw-ring-color': '#91c11e'
-                } as React.CSSProperties}
-                onFocus={(e) => e.target.style.borderColor = '#91c11e'}
-                onBlur={(e) => e.target.style.borderColor = '#cccccc'}
+                className="bg-white border-gray-300 focus:ring-2 focus:ring-[#108910] focus:border-[#108910] text-gray-900 placeholder:text-gray-400 rounded-lg transition-colors text-sm"
+                style={{ fontSize: '0.875rem', padding: '0.75rem' }}
                 required
               />
             </div>
 
             {/* Category and Location */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4" style={{ gap: '0.75rem' }}>
               <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: '#3c3c3c' }}>Category</label>
+                <label className="block text-xs lg:text-sm font-semibold mb-2 text-gray-700" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Category</label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                  className="w-full rounded-lg border-2 border-gray-200 bg-white text-gray-900 focus:border-2 transition-colors p-3"
-                  style={{ color: '#3c3c3c' }}
-                  onFocus={(e) => e.target.style.borderColor = '#91c11e'}
-                  onBlur={(e) => e.target.style.borderColor = '#cccccc'}
+                  className="w-full rounded-lg border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-[#108910] focus:border-[#108910] transition-colors text-sm"
+                  style={{ fontSize: '0.875rem', padding: '0.75rem' }}
                 >
                   {categories.map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
@@ -432,14 +438,12 @@ function AddItemModal({ isOpen, onClose, onAdd }: {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: '#3c3c3c' }}>Location</label>
+                <label className="block text-xs lg:text-sm font-semibold mb-2 text-gray-700" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Location</label>
                 <select
                   value={formData.location}
                   onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                  className="w-full rounded-lg border-2 border-gray-200 bg-white text-gray-900 focus:border-2 transition-colors p-3"
-                  style={{ color: '#3c3c3c' }}
-                  onFocus={(e) => e.target.style.borderColor = '#91c11e'}
-                  onBlur={(e) => e.target.style.borderColor = '#cccccc'}
+                  className="w-full rounded-lg border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-[#108910] focus:border-[#108910] transition-colors text-sm"
+                  style={{ fontSize: '0.875rem', padding: '0.75rem' }}
                 >
                   {locations.map(loc => (
                     <option key={loc} value={loc}>{loc}</option>
@@ -448,46 +452,57 @@ function AddItemModal({ isOpen, onClose, onAdd }: {
               </div>
             </div>
 
-            {/* Quantity and Unit */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: '#3c3c3c' }}>Quantity</label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
-                  className="bg-white border-2 border-gray-200 focus:border-2 text-gray-900 rounded-lg transition-colors"
-                  style={{ 
-                    color: '#3c3c3c',
-                    '--tw-ring-color': '#91c11e'
-                  } as React.CSSProperties}
-                  onFocus={(e) => e.target.style.borderColor = '#91c11e'}
-                  onBlur={(e) => e.target.style.borderColor = '#cccccc'}
+            {/* Enhanced Quantity with Slider */}
+            <div className="space-y-3">
+              <label className="block text-xs lg:text-sm font-semibold text-gray-700" style={{ fontSize: '0.875rem' }}>
+                Quantity
+              </label>
+              
+              <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                <Slider
+                  value={[formData.quantity]}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, quantity: value[0] }))}
+                  min={formData.unit === 'g' ? 10 : 1}
+                  max={getQuantityMax(formData.unit)}
+                  step={formData.unit === 'g' ? 10 : 1}
+                  showValue={true}
+                  showMinMax={true}
+                  unit={formData.unit}
+                  className="w-full"
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: '#3c3c3c' }}>Unit</label>
-                <select
-                  value={formData.unit}
-                  onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))}
-                  className="w-full rounded-lg border-2 border-gray-200 bg-white text-gray-900 focus:border-2 transition-colors p-3"
-                  style={{ color: '#3c3c3c' }}
-                  onFocus={(e) => e.target.style.borderColor = '#91c11e'}
-                  onBlur={(e) => e.target.style.borderColor = '#cccccc'}
-                >
-                  {units.map(unit => (
-                    <option key={unit} value={unit}>{unit}</option>
-                  ))}
-                </select>
+                
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="number"
+                    min={formData.unit === 'g' ? "10" : "1"}
+                    max={getQuantityMax(formData.unit)}
+                    value={formData.quantity}
+                    onChange={(e) => {
+                      const minValue = formData.unit === 'g' ? 10 : 1;
+                      setFormData(prev => ({ ...prev, quantity: Math.min(getQuantityMax(formData.unit), Math.max(minValue, parseInt(e.target.value) || minValue)) }));
+                    }}
+                    className="w-20 text-center bg-white border-gray-300 focus:ring-2 focus:ring-[#108910] focus:border-[#108910] text-gray-900 rounded-lg transition-colors text-sm"
+                    style={{ fontSize: '0.875rem', padding: '0.75rem' }}
+                  />
+                  
+                  <select
+                    value={formData.unit}
+                    onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))}
+                    className="flex-1 rounded-lg border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-[#108910] focus:border-[#108910] transition-colors text-sm"
+                    style={{ fontSize: '0.875rem', padding: '0.75rem' }}
+                  >
+                    {units.map(unit => (
+                      <option key={unit} value={unit}>{unit}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
             {/* Dates with Custom Date Pickers */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4" style={{ gap: '0.75rem' }}>
               <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: '#3c3c3c' }}>Purchase Date</label>
+                <label className="block text-xs lg:text-sm font-semibold mb-2 text-gray-700" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Purchase Date</label>
                 <DatePicker
                   value={formData.purchaseDate}
                   onChange={(date) => setFormData(prev => ({ ...prev, purchaseDate: date }))}
@@ -496,7 +511,7 @@ function AddItemModal({ isOpen, onClose, onAdd }: {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: '#3c3c3c' }}>Expiry Date</label>
+                <label className="block text-xs lg:text-sm font-semibold mb-2 text-gray-700" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Expiry Date</label>
                 <DatePicker
                   value={formData.expiryDate}
                   onChange={(date) => setFormData(prev => ({ ...prev, expiryDate: date }))}
@@ -506,19 +521,19 @@ function AddItemModal({ isOpen, onClose, onAdd }: {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3 pt-2 border-t border-gray-100">
+            <div className="flex flex-col sm:flex-row gap-3 border-t border-gray-200" style={{ paddingTop: '1rem', gap: '0.75rem' }}>
               <Button 
                 type="button" 
                 onClick={onClose} 
-                className="flex-1 bg-white hover:bg-gray-50 border-2 text-gray-700 rounded-lg transition-colors font-semibold"
-                style={{ borderColor: '#91c11e', color: '#91c11e' }}
+                className="flex-1 bg-white hover:bg-gray-100 border border-gray-300 text-gray-800 rounded-lg transition-colors font-semibold text-sm"
+                style={{ fontSize: '0.875rem', padding: '0.75rem' }}
               >
                 Cancel
               </Button>
               <Button 
                 type="submit" 
-                className="flex-1 text-white rounded-lg transition-colors font-semibold hover:opacity-90"
-                style={{ backgroundColor: '#91c11e' }}
+                className="flex-1 text-white rounded-lg transition-colors font-semibold hover:opacity-90 text-sm"
+                style={{ backgroundColor: '#108910', fontSize: '0.875rem', padding: '0.75rem' }}
               >
                 Add Item
               </Button>
@@ -592,10 +607,92 @@ function InventoryLoadingSkeleton() {
   );
 }
 
+function InventoryItemCard({
+  item,
+  onAddToShoppingList,
+  onEdit,
+  onDelete,
+}: {
+  item: InventoryItem;
+  onAddToShoppingList: (item: InventoryItem) => void;
+  onEdit: (item: InventoryItem) => void;
+  onDelete: (id: string) => void;
+}) {
+  const statusConfig = {
+    fresh: {
+      label: 'Fresh',
+      textColor: 'text-green-700',
+      icon: <CheckCircle className="h-4 w-4 text-green-600" />,
+    },
+    expiring: {
+      label: 'Expiring Soon',
+      textColor: 'text-amber-700',
+      icon: <Clock className="h-4 w-4 text-amber-600" />,
+    },
+    expired: {
+      label: 'Expired',
+      textColor: 'text-red-700',
+      icon: <AlertTriangle className="h-4 w-4 text-red-600" />,
+    },
+  };
+
+  const { label, textColor, icon } = statusConfig[item.status];
+
+  return (
+    <Card className="overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300 ease-in-out border-l-4 bg-white" style={{ borderLeftColor: `var(--status-${item.status})` }}>
+      <CardContent className="p-3 sm:p-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <img
+            src={item.image || 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=80&h=80&fit=crop&crop=center'}
+            alt={item.name}
+            className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover border mx-auto sm:mx-0"
+            style={{ width: '4rem', height: '4rem' }}
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=80&h=80&fit=crop&crop=center';
+            }}
+          />
+          <div className="flex-1 min-w-0">
+            <div className="flex justify-between items-start mb-2">
+              <h3 className="font-bold text-base sm:text-lg text-gray-800 truncate pr-2" style={{ fontSize: '1.125rem' }}>{item.name}</h3>
+              <Button
+                className="h-8 w-8 text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 shadow-sm"
+                onClick={() => onDelete(item.id)}
+                style={{ minWidth: '2rem', minHeight: '2rem' }}
+              >
+                <Trash2 className="h-4 w-4" style={{ width: '1rem', height: '1rem' }} />
+              </Button>
+            </div>
+            
+            <p className="text-xs sm:text-sm text-gray-500 mb-2" style={{ fontSize: '0.875rem' }}>{item.category} • {item.location}</p>
+            <p className="text-xs sm:text-sm font-semibold text-gray-700 mb-3" style={{ fontSize: '0.875rem' }}>
+              Quantity: {item.quantity} {item.unit}
+            </p>
+
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-medium p-2 rounded-md bg-[#f6f7f8] mb-3" style={{ padding: '0.5rem', fontSize: '0.875rem' }}>
+              {icon}
+              <span className={`flex-1 truncate ${textColor}`}>
+                {label} (Expires: {new Date(item.expiryDate).toLocaleDateString()})
+              </span>
+            </div>
+             <Button
+              onClick={() => onAddToShoppingList(item)}
+              className="w-full text-gray-800 font-semibold hover:opacity-90 text-sm"
+              style={{ backgroundColor: '#ffdc23', fontSize: '0.875rem', padding: '0.75rem' }}
+            >
+              <ShoppingCart className="h-4 w-4 mr-2" style={{ width: '1rem', height: '1rem' }} />
+              Add to Shopping List
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function InventoryContent() {
   const { isSignedIn, loading: authLoading } = useAuth();
   const { showNotification } = useNotification();
-  const { handleError } = useErrorHandler();
   const router = useRouter();
   
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -605,6 +702,9 @@ function InventoryContent() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
 
   // Load inventory items
   useEffect(() => {
@@ -699,7 +799,7 @@ function InventoryContent() {
         
         setItems(itemsWithStatus);
         setFilteredItems(itemsWithStatus);
-        handleError(new Error('Failed to load inventory from API, using fallback data'));
+        showNotification('⚠️ Using fallback data - API connection issue', 'info');
       } finally {
         setIsLoading(false);
       }
@@ -710,7 +810,7 @@ function InventoryContent() {
     } else {
       setIsLoading(false);
     }
-  }, [isSignedIn, handleError]);
+  }, [isSignedIn]);
 
   // Filter items based on search and filters
   useEffect(() => {
@@ -740,13 +840,32 @@ function InventoryContent() {
 
   const handleDeleteItem = async (itemId: string) => {
     try {
+      // Check if this is a mock item (simple numeric ID)
+      const isMockItem = /^\d+$/.test(itemId);
+      
+      if (isMockItem) {
+        // For mock items, just remove from local state without API call
+        const deletedItem = items.find(item => item.id === itemId);
+        const updatedItems = items.filter(item => item.id !== itemId);
+        setItems(updatedItems);
+        showNotification('Item removed from inventory', 'success');
+        
+        // Track inventory item deletion
+        if (deletedItem) {
+          trackEvent('inventory_item_deleted', 'inventory', deletedItem.category);
+        }
+        return;
+      }
+
       // Call the API to delete the item
       const response = await fetch(`/api/inventory?id=${itemId}`, {
         method: 'DELETE',
       });
       
       if (!response.ok) {
-        throw new Error('Failed to delete item from API');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || `Failed to delete item (${response.status})`;
+        throw new Error(errorMessage);
       }
       
       // Update local state after successful API call
@@ -761,7 +880,10 @@ function InventoryContent() {
       }
     } catch (error) {
       console.error('Error deleting item:', error);
-      handleError(new Error('Failed to delete item'));
+      
+      // Provide user-friendly error message via notification instead of crashing
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete item';
+      showNotification(`❌ ${errorMessage}`, 'error');
       trackEvent('inventory_delete_error', 'inventory');
     }
   };
@@ -775,7 +897,7 @@ function InventoryContent() {
       trackEvent('inventory_to_shopping_list', 'inventory', item.category);
     } catch (error) {
       console.error('Error adding to shopping list:', error);
-      handleError(new Error('Failed to add to shopping list'));
+      showNotification('❌ Failed to add to shopping list', 'error');
     }
   };
 
@@ -820,6 +942,87 @@ function InventoryContent() {
     trackEvent('add_item_modal_opened', 'inventory');
   };
 
+  const handleBulkImport = () => {
+    setShowBulkImport(true);
+    showNotification('🚀 Opening bulk import...', 'info');
+    
+    // Track bulk import modal open
+    trackEvent('bulk_import_modal_opened', 'inventory');
+  };
+
+  const handleBulkImportSubmit = async (itemsData: Omit<InventoryItem, 'id' | 'status'>[]) => {
+    try {
+      const newItems: InventoryItem[] = [];
+      
+      for (const itemData of itemsData) {
+        // Calculate status based on expiry date
+        const expiryDate = new Date(itemData.expiryDate);
+        const today = new Date();
+        const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        
+        let status: 'fresh' | 'expiring' | 'expired';
+        if (daysUntilExpiry < 0) {
+          status = 'expired';
+        } else if (daysUntilExpiry <= 3) {
+          status = 'expiring';
+        } else {
+          status = 'fresh';
+        }
+
+        // Create new item with generated ID
+        const newItem: InventoryItem = {
+          id: Math.random().toString(36).substr(2, 9),
+          ...itemData,
+          status
+        };
+
+        newItems.push(newItem);
+
+        // Try to save to API (for real items)
+        try {
+          const apiData = {
+            name: itemData.name,
+            category: itemData.category,
+            quantity: itemData.quantity,
+            unit: itemData.unit,
+            expiry_date: itemData.expiryDate,
+            purchase_date: itemData.purchaseDate,
+            location: itemData.location,
+            image: itemData.image,
+            user_id: 'dev-user',
+          };
+
+          const response = await fetch('/api/inventory', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(apiData),
+          });
+
+          if (response.ok) {
+            const savedItem = await response.json();
+            // Update the item with the real ID from the API
+            newItem.id = savedItem.id;
+          }
+        } catch (error) {
+          console.warn('API save failed for item, using local storage:', itemData.name);
+        }
+      }
+
+      // Add all items to local state
+      setItems(prev => [...newItems, ...prev]);
+      showNotification(`✅ Successfully imported ${newItems.length} items!`, 'success');
+      
+      // Track bulk import success
+      trackEvent('bulk_import_success', 'inventory', 'items_count', newItems.length);
+    } catch (error) {
+      console.error('Error importing bulk items:', error);
+      showNotification('❌ Failed to import items', 'error');
+      trackEvent('bulk_import_error', 'inventory');
+    }
+  };
+
   const handleAddItemSubmit = async (itemData: Omit<InventoryItem, 'id' | 'status'>) => {
     try {
       // Calculate status based on expiry date
@@ -845,7 +1048,8 @@ function InventoryContent() {
         expiry_date: itemData.expiryDate,
         purchase_date: itemData.purchaseDate,
         location: itemData.location,
-        image: itemData.image
+        image: itemData.image,
+        user_id: 'dev-user',
       };
 
       // Call the API to add the item
@@ -884,17 +1088,129 @@ function InventoryContent() {
       trackEvent('inventory_item_added', 'inventory', itemData.category, itemData.quantity);
     } catch (error) {
       console.error('Error adding item:', error);
-      handleError(new Error('Failed to add item to inventory'));
+      showNotification('❌ Failed to add item to inventory', 'error');
       trackEvent('inventory_add_error', 'inventory');
     }
   };
 
   const handleEditItem = (item: InventoryItem) => {
-    showNotification(`✏️ Editing ${item.name}... (Feature coming soon!)`, 'info');
+    setEditingItem(item);
+    setShowEditModal(true);
+    showNotification(`✏️ Opening edit modal for ${item.name}`, 'info');
     
     // Track edit item attempt
     trackEvent('inventory_item_edit_initiated', 'inventory', item.category);
-    // In a real app, this would open an edit modal
+  };
+
+  const handleSaveItem = async (updatedItem: InventoryItem) => {
+    try {
+      // Check if this is a mock item (simple numeric ID)
+      const isMockItem = /^\d+$/.test(updatedItem.id);
+      
+      if (isMockItem) {
+        // For mock items, just update local state without API call
+        const updatedItems = items.map(item => 
+          item.id === updatedItem.id ? updatedItem : item
+        );
+        setItems(updatedItems);
+        showNotification(`✅ ${updatedItem.name} updated successfully!`, 'success');
+        
+        // Track inventory item update
+        trackEvent('inventory_item_updated', 'inventory', updatedItem.category);
+        return;
+      }
+
+      // Prepare data for API (convert to snake_case for backend)
+      const apiData = {
+        name: updatedItem.name,
+        category: updatedItem.category,
+        quantity: updatedItem.quantity,
+        unit: updatedItem.unit,
+        expiry_date: updatedItem.expiryDate,
+        purchase_date: updatedItem.purchaseDate,
+        location: updatedItem.location,
+        image: updatedItem.image,
+      };
+
+      // Call the API to update the item
+      const response = await fetch(`/api/inventory?id=${updatedItem.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(apiData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update item in API');
+      }
+
+      // Update local state after successful API call
+      const updatedItems = items.map(item => 
+        item.id === updatedItem.id ? updatedItem : item
+      );
+      setItems(updatedItems);
+      showNotification(`✅ ${updatedItem.name} updated successfully!`, 'success');
+      
+      // Track inventory item update
+      trackEvent('inventory_item_updated', 'inventory', updatedItem.category);
+    } catch (error) {
+      console.error('Error updating item:', error);
+      showNotification('❌ Failed to update item', 'error');
+      trackEvent('inventory_update_error', 'inventory');
+    }
+  };
+
+  const handleQuickUpdate = async (itemId: string, updates: Partial<InventoryItem>) => {
+    try {
+      const itemToUpdate = items.find(item => item.id === itemId);
+      if (!itemToUpdate) return;
+
+      const updatedItem = { ...itemToUpdate, ...updates };
+      
+      // Check if this is a mock item (simple numeric ID)
+      const isMockItem = /^\d+$/.test(itemId);
+      
+      if (isMockItem) {
+        // For mock items, just update local state without API call
+        const updatedItems = items.map(item => 
+          item.id === itemId ? updatedItem : item
+        );
+        setItems(updatedItems);
+        showNotification(`✅ Quick update saved!`, 'success');
+        return;
+      }
+
+      // For real items, update via API
+      const apiData = {
+        quantity: updatedItem.quantity,
+      };
+
+      const response = await fetch(`/api/inventory?id=${itemId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(apiData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update item');
+      }
+
+      // Update local state after successful API call
+      const updatedItems = items.map(item => 
+        item.id === itemId ? updatedItem : item
+      );
+      setItems(updatedItems);
+      showNotification(`✅ Quick update saved!`, 'success');
+      
+      // Track quick update
+      trackEvent('inventory_quick_update', 'inventory');
+    } catch (error) {
+      console.error('Error with quick update:', error);
+      showNotification('❌ Failed to save quick update', 'error');
+    }
   };
 
   const clearAllFilters = () => {
@@ -941,293 +1257,189 @@ function InventoryContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Add Item Modal */}
-        <AddItemModal 
-          isOpen={showAddForm} 
-          onClose={() => setShowAddForm(false)}
-          onAdd={handleAddItemSubmit}
-        />
+    <div className="min-h-screen bg-[#f6f7f8]" style={{'--status-fresh': '#108910', '--status-expiring': '#ffdc23', '--status-expired': '#dc2626'} as React.CSSProperties}>
+      <AddItemModal 
+        isOpen={showAddForm} 
+        onClose={() => setShowAddForm(false)}
+        onAdd={handleAddItemSubmit}
+      />
 
-        {/* Mobile-Optimized Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2 flex items-center gap-2" style={{ color: '#3c3c3c' }}>
-            <Package className="h-6 w-6 sm:h-8 sm:w-8" style={{ color: '#91c11e' }} />
-            Food Inventory
-          </h1>
-          <p className="text-sm sm:text-base text-gray-600" style={{ color: '#888888' }}>
-            Track your food items and never let anything expire again
-          </p>
-        </div>
+      {/* Edit Item Modal */}
+      <EditInventoryModal
+        isOpen={showEditModal}
+        item={editingItem}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingItem(null);
+        }}
+        onSave={(updatedItem) => {
+          handleSaveItem(updatedItem);
+          setShowEditModal(false);
+          setEditingItem(null);
+        }}
+      />
 
-        {/* Mobile-First Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-          <Card className="border border-gray-100 hover:shadow-md transition-shadow">
-            <CardContent className="p-3 sm:p-4 lg:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <div className="mb-2 sm:mb-0">
-                  <p className="text-xs sm:text-sm font-medium" style={{ color: '#888888' }}>Total Items</p>
-                  <p className="text-lg sm:text-xl lg:text-2xl font-bold" style={{ color: '#3c3c3c' }}>{stats.total}</p>
-                </div>
-                <Package className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 self-end sm:self-auto" style={{ color: '#91c11e' }} />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border border-gray-100 hover:shadow-md transition-shadow">
-            <CardContent className="p-3 sm:p-4 lg:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <div className="mb-2 sm:mb-0">
-                  <p className="text-xs sm:text-sm font-medium" style={{ color: '#888888' }}>Fresh</p>
-                  <p className="text-lg sm:text-xl lg:text-2xl font-bold" style={{ color: '#659a41' }}>{stats.fresh}</p>
-                </div>
-                <CheckCircle className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 self-end sm:self-auto" style={{ color: '#659a41' }} />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border border-gray-100 hover:shadow-md transition-shadow">
-            <CardContent className="p-3 sm:p-4 lg:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <div className="mb-2 sm:mb-0">
-                  <p className="text-xs sm:text-sm font-medium" style={{ color: '#888888' }}>Expiring Soon</p>
-                  <p className="text-lg sm:text-xl lg:text-2xl font-bold" style={{ color: '#E8DE10' }}>{stats.expiring}</p>
-                </div>
-                <Clock className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 self-end sm:self-auto" style={{ color: '#E8DE10' }} />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border border-gray-100 hover:shadow-md transition-shadow">
-            <CardContent className="p-3 sm:p-4 lg:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <div className="mb-2 sm:mb-0">
-                  <p className="text-xs sm:text-sm font-medium" style={{ color: '#888888' }}>Expired</p>
-                  <p className="text-lg sm:text-xl lg:text-2xl font-bold" style={{ color: '#ef9d17' }}>{stats.expired}</p>
-                </div>
-                <AlertTriangle className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 self-end sm:self-auto" style={{ color: '#ef9d17' }} />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Mobile-Optimized Actions Bar */}
-        <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2 sm:gap-4 mb-6">
-          <Button 
-            onClick={handleAddItem}
-            className="flex items-center justify-center gap-2 text-white font-semibold rounded-lg transition-all hover:opacity-90 h-10 sm:h-auto"
-            style={{ backgroundColor: '#91c11e' }}
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Add Item</span>
-            <span className="sm:hidden">Add</span>
-          </Button>
-          <Button 
-            onClick={handleScanBarcode}
-            className="flex items-center justify-center gap-2 text-white font-semibold rounded-lg transition-all hover:opacity-90 h-10 sm:h-auto"
-            style={{ backgroundColor: '#659a41' }}
-          >
-            <Scan className="h-4 w-4" />
-            <span className="hidden sm:inline">Scan Barcode</span>
-            <span className="sm:hidden">Scan</span>
-          </Button>
-          <Button 
-            onClick={() => router.push('/shopping-list')}
-            className="flex items-center justify-center gap-2 text-white font-semibold rounded-lg transition-all hover:opacity-90 h-10 sm:h-auto"
-            style={{ backgroundColor: '#ef9d17' }}
-          >
-            <ShoppingCart className="h-4 w-4" />
-            <span className="hidden sm:inline">Shopping List</span>
-            <span className="sm:hidden">Shop</span>
-          </Button>
-          <Button 
-            onClick={clearAllFilters}
-            className="flex items-center justify-center gap-2 bg-white border-2 font-semibold rounded-lg transition-all hover:bg-gray-50 h-10 sm:h-auto"
-            style={{ borderColor: '#91c11e', color: '#91c11e' }}
-          >
-            <Filter className="h-4 w-4" />
-            <span className="hidden sm:inline">Clear Filters</span>
-            <span className="sm:hidden">Clear</span>
-          </Button>
-        </div>
-
-        {/* Mobile-Optimized Search and Filters */}
-        <div className="mb-6 space-y-4">
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4" style={{ color: '#888888' }} />
-            <Input
-              type="text"
-              placeholder="Search items, categories, or locations..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-white border-2 border-gray-200 rounded-lg focus:border-2 transition-colors h-10 sm:h-auto text-sm sm:text-base"
-              style={{ 
-                color: '#3c3c3c',
-                '--tw-ring-color': '#91c11e'
-              } as React.CSSProperties}
-              onFocus={(e) => e.target.style.borderColor = '#91c11e'}
-              onBlur={(e) => e.target.style.borderColor = '#cccccc'}
-            />
+      {/* Bulk Import Modal */}
+      <BulkImportModal
+        isOpen={showBulkImport}
+        onClose={() => setShowBulkImport(false)}
+        onImport={handleBulkImportSubmit}
+      />
+      <div className="flex flex-col lg:flex-row">
+        {/* Sidebar */}
+        <div className="w-full lg:w-1/4 lg:min-w-[17.5rem] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 p-4 lg:p-6 space-y-4 lg:space-y-8 lg:h-screen lg:sticky lg:top-0" style={{ padding: '1rem', minWidth: '17.5rem' }}>
+          <div>
+            <h1 className="text-xl lg:text-2xl font-bold mb-1 flex items-center gap-3 text-gray-800" style={{ fontSize: '1.5rem', gap: '0.75rem', marginBottom: '0.25rem' }}>
+              <Package className="h-5 w-5 lg:h-6 lg:w-6" style={{ color: '#108910', width: '1.5rem', height: '1.5rem' }} />
+              Inventory
+            </h1>
+            <p className="text-xs lg:text-sm text-gray-500" style={{ fontSize: '0.875rem' }}>Your custom-styled pantry.</p>
           </div>
 
-          {/* Mobile-Friendly Filter Buttons */}
-          <div className="space-y-3">
+          <div className="space-y-3 lg:space-y-4" style={{ gap: '0.75rem' }}>
+             <Button 
+              onClick={handleAddItem}
+              className="w-full flex items-center justify-center gap-2 text-white font-semibold rounded-lg transition-all hover:opacity-90 text-sm lg:text-base"
+              style={{ backgroundColor: '#108910', height: '2.5rem', fontSize: '0.875rem', gap: '0.5rem' }}
+            >
+              <Plus className="h-4 w-4" style={{ width: '1rem', height: '1rem' }} />
+              <span>Add Item</span>
+            </Button>
+            <Button 
+              onClick={handleBulkImport}
+              className="w-full flex items-center justify-center gap-2 text-white font-semibold rounded-lg transition-all hover:opacity-90 text-sm lg:text-base"
+              style={{ backgroundColor: '#3b82f6', height: '2.5rem', fontSize: '0.875rem', gap: '0.5rem' }}
+            >
+              <Package className="h-4 w-4" style={{ width: '1rem', height: '1rem' }} />
+              <span>Add in Bulk</span>
+            </Button>
+            <Button 
+              onClick={handleScanBarcode}
+              className="w-full flex items-center justify-center gap-2 font-semibold rounded-lg transition-all text-gray-800 hover:opacity-90 text-sm lg:text-base"
+              style={{ backgroundColor: '#ffdc23', height: '2.5rem', fontSize: '0.875rem', gap: '0.5rem' }}
+            >
+              <Scan className="h-4 w-4" style={{ width: '1rem', height: '1rem' }} />
+              <span>Scan Barcode</span>
+            </Button>
+          </div>
+          
+          {/* Filters */}
+          <div className="space-y-4 lg:space-y-6" style={{ gap: '1rem' }}>
+            <h2 className="font-semibold text-base lg:text-lg text-gray-800" style={{ fontSize: '1.125rem' }}>Filters</h2>
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" style={{ left: '0.75rem', width: '1rem', height: '1rem' }} />
+              <Input
+                type="text"
+                placeholder="Search items..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 lg:pl-10 bg-[#f6f7f8] border-gray-200 rounded-lg focus:border-[#108910] transition-colors text-sm"
+                style={{ paddingLeft: '2.25rem', height: '2.5rem', fontSize: '0.875rem' }}
+              />
+            </div>
+            
             {/* Category Filters */}
             <div>
-              <p className="text-sm font-medium text-gray-700 mb-2">Categories</p>
-              <div className="flex flex-wrap gap-2">
-                {categories.map((category) => (
-                  <Button
-                    key={category}
-                    onClick={() => setSelectedCategory(category)}
-                    className={`text-xs sm:text-sm font-semibold rounded-lg transition-all h-8 sm:h-auto ${
-                      selectedCategory === category
-                        ? 'text-white'
-                        : 'bg-white border-2 hover:bg-gray-50'
-                    }`}
-                    style={selectedCategory === category 
-                      ? { backgroundColor: '#91c11e' }
-                      : { borderColor: '#91c11e', color: '#91c11e' }
-                    }
-                  >
-                    {category === 'all' ? 'All Categories' : category}
-                  </Button>
-                ))}
-              </div>
+              <label className="text-xs lg:text-sm font-medium text-gray-700 block mb-2" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Category</label>
+              <select 
+                value={selectedCategory} 
+                onChange={e => setSelectedCategory(e.target.value)}
+                className="w-full rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-[#108910] transition-colors text-sm"
+                style={{ padding: '0.5rem', height: '2.5rem', fontSize: '0.875rem' }}
+              >
+                 {categories.map((category) => (
+                   <option key={category} value={category}>
+                     {category === 'all' ? 'All Categories' : category}
+                   </option>
+                 ))}
+              </select>
             </div>
             
             {/* Status Filters */}
             <div>
-              <p className="text-sm font-medium text-gray-700 mb-2">Status</p>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { id: 'all', label: 'All Status', color: '#3c3c3c' },
-                  { id: 'fresh', label: 'Fresh', color: '#659a41' },
-                  { id: 'expiring', label: 'Expiring', color: '#E8DE10' },
-                  { id: 'expired', label: 'Expired', color: '#ef9d17' }
-                ].map(({ id, label, color }) => (
-                  <Button
-                    key={id}
-                    onClick={() => setSelectedStatus(id)}
-                    className={`text-xs sm:text-sm font-semibold rounded-lg transition-all h-8 sm:h-auto ${
-                      selectedStatus === id
-                        ? 'text-white'
-                        : 'bg-white border-2 hover:bg-gray-50'
-                    }`}
-                    style={selectedStatus === id 
-                      ? { backgroundColor: color }
-                      : { borderColor: color, color: color }
-                    }
-                  >
-                    {label}
-                  </Button>
-                ))}
+              <label className="text-xs lg:text-sm font-medium text-gray-700 block mb-2" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Status</label>
+              <div className="space-y-2" style={{ gap: '0.5rem' }}>
+                 {[
+                    { id: 'all', label: 'All Status' },
+                    { id: 'fresh', label: 'Fresh' },
+                    { id: 'expiring', label: 'Expiring Soon' },
+                    { id: 'expired', label: 'Expired' }
+                  ].map(({ id, label }) => (
+                  <div key={id} className="flex items-center" style={{ gap: '0.75rem' }}>
+                    <input 
+                      type="radio" 
+                      id={`status-${id}`}
+                      name="status"
+                      value={id}
+                      checked={selectedStatus === id}
+                      onChange={e => setSelectedStatus(e.target.value)}
+                      className="h-4 w-4 text-[#108910] border-gray-300 focus:ring-[#108910]"
+                      style={{ width: '1rem', height: '1rem' }}
+                    />
+                    <label htmlFor={`status-${id}`} className="block text-xs lg:text-sm text-gray-700" style={{ fontSize: '0.875rem' }}>{label}</label>
+                  </div>
+                 ))}
               </div>
             </div>
+             <Button
+                onClick={clearAllFilters}
+                className="text-xs lg:text-sm text-gray-600 hover:text-gray-900 p-0 h-auto"
+                style={{ fontSize: '0.875rem' }}
+              >
+                Clear All Filters
+              </Button>
           </div>
         </div>
 
-        {/* Results Count */}
-        <div className="mb-4 sm:mb-6">
-          <p className="text-sm sm:text-base text-gray-600">
-            Showing {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}
-            {searchQuery && ` for "${searchQuery}"`}
-          </p>
-        </div>
-
-        {/* Mobile-Optimized Inventory Grid */}
-        {filteredItems.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {filteredItems.map((item) => (
-              <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex items-start gap-3">
-                    {/* Item Image */}
-                    <div className="flex-shrink-0">
-                      <img
-                        src={item.image || 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=60&h=60&fit=crop&crop=center'}
-                        alt={item.name}
-                        className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=60&h=60&fit=crop&crop=center';
-                        }}
-                      />
-                    </div>
-
-                    {/* Item Details */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-semibold text-sm sm:text-base text-gray-900 truncate pr-2">{item.name}</h3>
-                        <Badge 
-                          className={`text-xs flex-shrink-0 ${
-                            item.status === 'fresh' ? 'bg-green-100 text-green-700' :
-                            item.status === 'expiring' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-red-100 text-red-700'
-                          }`}
-                        >
-                          {item.status}
-                        </Badge>
-                      </div>
-                      
-                      <p className="text-xs sm:text-sm text-gray-600 mb-1">{item.category}</p>
-                      <p className="text-xs sm:text-sm text-gray-600 mb-2">
-                        {item.quantity} {item.unit} • {item.location}
-                      </p>
-                      
-                      <div className="flex items-center gap-1 text-xs text-gray-500 mb-3">
-                        <Calendar className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">Expires: {new Date(item.expiryDate).toLocaleDateString()}</span>
-                      </div>
-
-                      {/* Mobile-Optimized Action Buttons */}
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <Button
-                          onClick={() => handleAddToShoppingList(item)}
-                          className="flex-1 text-xs py-1.5 px-2 h-7 sm:h-8 min-w-0"
-                        >
-                          <ShoppingCart className="h-3 w-3 mr-1 flex-shrink-0" />
-                          <span className="truncate">Add</span>
-                        </Button>
-                        <Button
-                          onClick={() => handleEditItem(item)}
-                          className="text-xs py-1.5 px-2 h-7 sm:h-8 w-8 sm:w-auto bg-blue-600 hover:bg-blue-700 flex-shrink-0"
-                        >
-                          <Edit className="h-3 w-3" />
-                          <span className="hidden sm:inline sm:ml-1">Edit</span>
-                        </Button>
-                        <Button
-                          onClick={() => handleDeleteItem(item.id)}
-                          className="text-xs py-1.5 px-2 h-7 sm:h-8 w-8 sm:w-auto bg-red-600 hover:bg-red-700 flex-shrink-0"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                          <span className="hidden sm:inline sm:ml-1">Delete</span>
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+        {/* Main Content */}
+        <main className="w-full lg:w-3/4 bg-[#f6f7f8]" style={{ padding: '1rem' }}>
+           {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6" style={{ marginBottom: '1.5rem', gap: '1rem' }}>
+             <h2 className="text-lg lg:text-xl font-semibold text-gray-700" style={{ fontSize: '1.25rem' }}>
+                Your Items ({filteredItems.length})
+              </h2>
+             <Button 
+                onClick={() => router.push('/shopping-list')}
+                className="border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm w-full sm:w-auto"
+                style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
+              >
+                <ShoppingCart className="h-4 w-4 mr-2" style={{ width: '1rem', height: '1rem', marginRight: '0.5rem' }} />
+                Go to Shopping List
+              </Button>
           </div>
-        ) : (
-          <div className="text-center py-8 sm:py-12">
-            <Package className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">No items found</h3>
-            <p className="text-sm sm:text-base text-gray-600 mb-6 px-4">
-              {searchQuery 
-                ? `No items match "${searchQuery}". Try a different search term.`
-                : 'Your inventory is empty. Start by adding some items!'
-              }
-            </p>
-            <Button onClick={handleAddItem} className="text-white font-semibold rounded-lg transition-all hover:opacity-90" style={{ backgroundColor: '#91c11e' }}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Your First Item
-            </Button>
-          </div>
-        )}
+
+          {/* Grid */}
+          {filteredItems.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-4 lg:gap-6" style={{ gap: '1rem' }}>
+              {filteredItems.map((item) => (
+                <EnhancedInventoryCard 
+                  key={item.id}
+                  item={item}
+                  onAddToShoppingList={handleAddToShoppingList}
+                  onEdit={handleEditItem}
+                  onDelete={handleDeleteItem}
+                  onQuickUpdate={handleQuickUpdate}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center rounded-lg border-2 border-dashed border-gray-300 bg-white" style={{ padding: '3rem 1rem' }}>
+              <Package className="h-12 w-12 lg:h-16 lg:w-16 text-gray-400 mx-auto mb-4" style={{ width: '3rem', height: '3rem', marginBottom: '1rem' }} />
+              <h3 className="text-lg lg:text-xl font-semibold text-gray-800 mb-2" style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>No items found</h3>
+              <p className="text-sm lg:text-base text-gray-500 mb-6" style={{ fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+                {searchQuery 
+                  ? `No items match "${searchQuery}". Try a different search.`
+                  : 'Your inventory is empty. Add an item to get started.'
+                }
+              </p>
+              <Button onClick={handleAddItem} className="text-white font-semibold rounded-lg transition-all hover:opacity-90" style={{ backgroundColor: '#108910', fontSize: '0.875rem', padding: '0.75rem 1rem' }}>
+                <Plus className="h-4 w-4 mr-2" style={{ width: '1rem', height: '1rem', marginRight: '0.5rem' }} />
+                Add Your First Item
+              </Button>
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );

@@ -142,7 +142,7 @@ export default function ProfilePage() {
                 </Button>
               </Link>
               
-              <Link href="/instagram">
+              <Link href="/explore">
                 <Button className="w-full justify-start">
                   📱 Instagram Integration
                 </Button>

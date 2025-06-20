@@ -270,33 +270,35 @@ export default function ShoppingListPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row">
       {/* Sidebar */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+      <div className="w-full lg:w-80 bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-lg font-semibold text-gray-900">Shopping Lists</h1>
-            <div className="flex gap-2">
+        <div className="border-b border-gray-200" style={{ padding: '1rem' }}>
+          <div className="flex items-center justify-between" style={{ marginBottom: '1rem' }}>
+            <h1 className="font-semibold text-gray-900" style={{ fontSize: '1.125rem' }}>Shopping Lists</h1>
+            <div className="flex" style={{ gap: '0.5rem' }}>
               <Button
                 onClick={createNewManualList}
-                className="h-8 w-8 p-0 bg-gray-100 hover:bg-gray-200 text-gray-600"
+                className="p-0 bg-gray-100 hover:bg-gray-200 text-gray-600"
                 title="Create Manual List"
+                style={{ height: '2rem', width: '2rem' }}
               >
-                <Plus className="h-4 w-4" />
+                <Plus style={{ width: '1rem', height: '1rem' }} />
               </Button>
               <Button
                 onClick={() => setShowAIGenerator(true)}
-                className="h-8 w-8 p-0 bg-green-100 hover:bg-green-200 text-green-600"
+                className="p-0 bg-green-100 hover:bg-green-200 text-green-600"
                 title="AI Generate from Reels"
+                style={{ height: '2rem', width: '2rem' }}
               >
-                <Sparkles className="h-4 w-4" />
+                <Sparkles style={{ width: '1rem', height: '1rem' }} />
               </Button>
             </div>
           </div>
           
           {selectedList && (
-            <p className="text-sm text-gray-500">
+            <p className="text-gray-500" style={{ fontSize: '0.875rem' }}>
               {selectedList.type === 'manual' 
                 ? `${selectedList.items?.length || 0} items`
                 : `${selectedList.totalItems} items from ${selectedList.sourceReels?.length || 0} recipes`
@@ -307,21 +309,22 @@ export default function ShoppingListPage() {
 
         {/* AI Promotion Banner */}
         {aiLists.length === 0 && (
-          <div className="mx-4 my-4 p-4 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg">
-            <div className="flex items-start gap-3">
+          <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg" style={{ margin: '1rem', padding: '1rem' }}>
+            <div className="flex items-start" style={{ gap: '0.75rem' }}>
               <div className="flex-shrink-0">
-                <Sparkles className="h-5 w-5 text-green-600 mt-0.5" />
+                <Sparkles className="text-green-600" style={{ width: '1.25rem', height: '1.25rem', marginTop: '0.125rem' }} />
               </div>
               <div>
-                <h3 className="text-sm font-medium text-green-900 mb-1">AI-Powered Shopping Lists</h3>
-                <p className="text-xs text-green-700 mb-2">
+                <h3 className="font-medium text-green-900" style={{ fontSize: '0.875rem', marginBottom: '0.25rem' }}>AI-Powered Shopping Lists</h3>
+                <p className="text-green-700" style={{ fontSize: '0.75rem', marginBottom: '0.5rem' }}>
                   Turn your saved Instagram recipe reels into organized shopping lists automatically!
                 </p>
                 <Button
                   onClick={() => setShowAIGenerator(true)}
-                  className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 h-auto"
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  style={{ fontSize: '0.75rem', padding: '0.25rem 0.75rem', height: 'auto' }}
                 >
-                  <Instagram className="h-3 w-3 mr-1" />
+                  <Instagram style={{ width: '0.75rem', height: '0.75rem', marginRight: '0.25rem' }} />
                   Generate from Reels
                 </Button>
               </div>

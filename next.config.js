@@ -1,6 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  
+  // Performance optimizations
+  experimental: {
+    optimizeCss: true,
+    scrollRestoration: true,
+  },
+  
+  // Bundle analysis (uncomment when needed)
+  // bundleAnalyzer: {
+  //   enabled: process.env.ANALYZE === 'true',
+  // },
+  
   images: {
     remotePatterns: [
       {
@@ -22,6 +34,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'sample-videos.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
       }
     ],
     formats: ['image/webp', 'image/avif'],
@@ -29,6 +45,7 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
+  
   env: {
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     SPOONACULAR_API_KEY: process.env.SPOONACULAR_API_KEY,
@@ -40,10 +57,12 @@ const nextConfig = {
     STRIPE_PUBLIC_KEY: process.env.STRIPE_PUBLIC_KEY,
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
   },
+  
   // Compression and optimization
   compress: true,
   poweredByHeader: false,
-  // Security headers
+  
+  // Performance headers
   async headers() {
     return [
       {
@@ -64,6 +83,11 @@ const nextConfig = {
           {
             key: 'Referrer-Policy',
             value: 'origin-when-cross-origin',
+          },
+          // Cache static assets
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
           },
         ],
       },

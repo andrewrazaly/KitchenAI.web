@@ -67,7 +67,7 @@ import {
 import { migrateLocalStorageToDatabase as migrateSavedReelsToDatabase } from '../../feature_import_instagram/lib/saved-reels-service';
 import { toast } from 'sonner';
 
-export default function InstagramSearchPage() {
+export default function ExplorePage() {
   const { isSignedIn } = useAuth();
   const supabase = useSupabase();
   const [username, setUsername] = useState('');
@@ -236,13 +236,31 @@ export default function InstagramSearchPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Instagram className="h-8 w-8 text-pink-500" />
-            <h1 className="text-3xl font-bold text-gray-900">Content Creator Search</h1>
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="p-3 rounded-full bg-gradient-to-r from-pink-500 to-orange-500">
+              <Instagram className="h-8 w-8 text-white" />
+            </div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-green-500 bg-clip-text text-transparent">
+              Explore Creators
+            </h1>
           </div>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Search for your favorite food content creators on Instagram and save their cooking reels to your recipe collection.
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
+            🔥 <strong>Your main recipe discovery hub!</strong> Search for food creators, save their best cooking content, and build your personal recipe collection.
           </p>
+          <div className="mt-4 flex items-center justify-center gap-6 text-sm text-gray-500">
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+              Real Instagram content
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+              Save & organize recipes
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+              Follow your favorites
+            </span>
+          </div>
         </div>
 
         {/* Search Section */}

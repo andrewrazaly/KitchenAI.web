@@ -137,7 +137,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
       </head>
-      <body className={`h-full bg-gray-light`}>
+      <body className={`h-full bg-neutral-50`}>
         {/* Google Tag Manager (noscript) */}
         <noscript>
           <iframe 

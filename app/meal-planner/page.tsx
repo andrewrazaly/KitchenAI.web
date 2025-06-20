@@ -579,7 +579,7 @@ function MealPlannerContent() {
                   Save recipes from Instagram to add them to your meal plans!
                 </p>
                 <Button 
-                  onClick={() => window.open('/instagram', '_blank')}
+                  onClick={() => window.open('/explore', '_blank')}
                   className="bg-orange-500 hover:bg-orange-600 text-white"
                 >
                   Discover Recipes

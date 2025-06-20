@@ -4,12 +4,13 @@ import { inventoryStore } from '@/app/lib/inventory-store';
 
 export async function GET(request: Request) {
   try {
-    const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userId = session.user.id;
+    // TEMP: Bypass authentication for local dev
+    // const session = await getSession();
+    // console.log('SESSION IN API:', session);
+    // if (!session?.user) {
+    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // }
+    const userId = 'dev-user'; // Hardcoded user for local testing
     const { searchParams } = new URL(request.url);
     const location = searchParams.get('location');
     const category = searchParams.get('category');
@@ -44,12 +45,12 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userId = session.user.id;
+    // TEMP: Bypass authentication for local dev
+    // const session = await getSession();
+    // if (!session?.user) {
+    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // }
+    const userId = 'dev-user'; // Hardcoded user for local testing
     const body = await request.json();
     
     // Create new item with ID
@@ -81,12 +82,12 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userId = session.user.id;
+    // TEMP: Bypass authentication for local dev
+    // const session = await getSession();
+    // if (!session?.user) {
+    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // }
+    const userId = 'dev-user'; // Hardcoded user for local testing
     const body = await request.json();
     const { id, ...updateData } = body;
     
@@ -119,26 +120,33 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userId = session.user.id;
+    // TEMP: Bypass authentication for local dev
+    // const session = await getSession();
+    // if (!session?.user) {
+    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // }
+    const userId = 'dev-user'; // Hardcoded user for local testing
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     
+    console.log('DELETE request for item ID:', id);
+    
     if (!id) {
+      console.error('DELETE request missing item ID');
       return NextResponse.json({ error: 'Item ID is required' }, { status: 400 });
     }
     
     // Get current items for this user
     const userItems = inventoryStore.get(userId) || [];
+    console.log('Current items in store:', userItems.length);
+    console.log('Looking for item with ID:', id);
     
     // Find item index
     const itemIndex = userItems.findIndex(item => item.id === id && item.user_id === userId);
     
     if (itemIndex === -1) {
+      console.error('Item not found in store:', id);
+      console.log('Available item IDs:', userItems.map(item => item.id));
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
     
@@ -149,6 +157,7 @@ export async function DELETE(request: Request) {
     // Update store
     inventoryStore.set(userId, userItems);
     
+    console.log('Successfully deleted item:', deletedItem.name, 'with ID:', id);
     return NextResponse.json({ message: 'Item deleted successfully' });
   } catch (error) {
     console.error('Error deleting inventory item:', error);

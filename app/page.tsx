@@ -12,6 +12,7 @@ import ShoppingListTrigger from './components/ShoppingListTrigger';
 import ExpiringItemsWidget from './components/ExpiringItemsWidget';
 import { VideoReelCard } from './components/VideoReelCard';
 import { HashtagVideoCard } from './components/HashtagVideoCard';
+import AIChatBotInline from './components/AIChatBotInline';
 import { 
   ChefHat, 
   Calendar, 
@@ -26,13 +27,33 @@ import {
   AlertTriangle,
   CheckCircle,
   Instagram,
-  Plus,
-  Zap
+  Plus
 } from "lucide-react";
 import { useNotification } from './components/Notification';
 import { getSavedReels, SavedReel } from '../feature_import_instagram/lib/saved-reels-service';
 import { useSupabase } from './hooks/useSupabase';
 import { trackEvent } from './components/GoogleAnalytics';
+import { apiCache, CACHE_KEYS, CACHE_DURATIONS } from './lib/cache';
+import { 
+  CubeIcon as ChefHatIcon, 
+  CalendarDaysIcon, 
+  ArchiveBoxIcon, 
+  ShoppingBagIcon,
+  ChartBarIcon as TrendingUpIcon,
+  ClockIcon,
+  HeartIcon,
+  SparklesIcon,
+  ArrowRightIcon,
+  PlusIcon,
+  ExclamationTriangleIcon
+} from '@heroicons/react/24/outline';
+import { 
+  CubeIcon as ChefHatIconSolid,
+  CalendarDaysIcon as CalendarDaysIconSolid,
+  ArchiveBoxIcon as ArchiveBoxIconSolid,
+  ShoppingBagIcon as ShoppingBagIconSolid
+} from '@heroicons/react/24/solid';
+import Link from 'next/link';
 
 interface DashboardStats {
   totalRecipes: number;
@@ -47,10 +68,11 @@ interface QuickAction {
   id: string;
   title: string;
   description: string;
-  icon: any;
-  color: string;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  iconSolid: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   href: string;
   badge?: string;
+  badgeColor?: string;
 }
 
 interface RecentActivity {
@@ -59,7 +81,7 @@ interface RecentActivity {
   title: string;
   description: string;
   timestamp: string;
-  icon: any;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
 }
 
 // Mock data
@@ -76,36 +98,40 @@ const quickActions: QuickAction[] = [
   {
     id: 'meal-planner',
     title: 'AI Meal Planner',
-    description: 'Create personalized meal plans',
-    icon: ChefHat,
-    color: 'bg-green-100',
+    description: 'Get personalized meal suggestions',
+    icon: ChefHatIcon,
+    iconSolid: ChefHatIconSolid,
     href: '/meal-planner',
-    badge: 'AI Powered'
+    badge: 'AI Powered',
+    badgeColor: 'primary'
   },
   {
-    id: 'recipe-reels',
-    title: 'Recipe Reels',
-    description: 'Discover trending recipes',
-    icon: Instagram,
-    color: 'bg-orange-100',
-    href: '/recipes/recipe-reels',
-    badge: 'Trending'
+    id: 'discover-recipes',
+    title: 'Discover Recipes',
+    description: 'Find trending recipes & tutorials',
+    icon: SparklesIcon,
+    iconSolid: SparklesIcon,
+    href: '/recipes',
+    badge: 'Popular',
+    badgeColor: 'warning'
   },
   {
-    id: 'inventory',
+    id: 'manage-inventory',
     title: 'Food Inventory',
-    description: 'Track your ingredients',
-    icon: Package,
-    color: 'bg-green-50',
+    description: 'Track ingredients & expiry dates',
+    icon: ArchiveBoxIcon,
+    iconSolid: ArchiveBoxIconSolid,
     href: '/inventory'
   },
   {
-    id: 'shopping',
-    title: 'Shopping List',
-    description: 'Smart grocery planning',
-    icon: ShoppingCart,
-    color: 'bg-yellow-50',
-    href: '/shopping-list'
+    id: 'shopping-list',
+    title: 'Smart Shopping',
+    description: 'AI-generated shopping lists',
+    icon: ShoppingBagIcon,
+    iconSolid: ShoppingBagIconSolid,
+    href: '/shopping-list',
+    badge: 'New',
+    badgeColor: 'success'
   }
 ];
 
@@ -113,10 +139,10 @@ const mockRecentActivity: RecentActivity[] = [
   {
     id: '1',
     type: 'recipe_saved',
-    title: 'Saved "60-Second Pasta Carbonara"',
-    description: 'From @chefmarco_official',
+    title: 'Saved "Quick Pasta Carbonara"',
+    description: 'From trending recipes',
     timestamp: '2 hours ago',
-    icon: Heart
+    icon: HeartIcon
   },
   {
     id: '2',
@@ -124,78 +150,68 @@ const mockRecentActivity: RecentActivity[] = [
     title: 'Generated 7-day meal plan',
     description: 'Mediterranean focus, $89 budget',
     timestamp: '1 day ago',
-    icon: Calendar
+    icon: CalendarDaysIcon
   },
   {
     id: '3',
     type: 'item_added',
     title: 'Added 5 items to inventory',
-    description: 'Organic milk, bread, eggs...',
+    description: 'Organic milk, bread, eggs, tomatoes, cheese',
     timestamp: '2 days ago',
-    icon: Package
+    icon: ArchiveBoxIcon
   }
 ];
 
 function DashboardLoadingSkeleton() {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header Skeleton */}
-        <div className="mb-8">
-          <Skeleton className="h-10 w-64 mb-2" />
-          <Skeleton className="h-4 w-96" />
-        </div>
+    <div className="container mx-auto py-8 animate-fade-in">
+      {/* Header Skeleton */}
+      <div className="mb-8">
+        <div className="skeleton h-8 w-64 mb-2" />
+        <div className="skeleton h-4 w-96" />
+      </div>
 
-        {/* Stats Cards Skeleton */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-4 md:p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Skeleton className="h-4 w-20 mb-2" />
-                    <Skeleton className="h-8 w-12" />
-                  </div>
-                  <Skeleton className="h-8 w-8" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Quick Actions Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <Skeleton className="h-12 w-12 mb-4" />
-                <Skeleton className="h-5 w-32 mb-2" />
-                <Skeleton className="h-4 w-24" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Recent Activity Skeleton */}
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-32" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <Skeleton className="h-10 w-10 rounded-full" />
-                  <div className="flex-1">
-                    <Skeleton className="h-4 w-48 mb-1" />
-                    <Skeleton className="h-3 w-32" />
-                  </div>
-                  <Skeleton className="h-3 w-16" />
-                </div>
-              ))}
+      {/* Stats Grid Skeleton */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="card p-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <div className="skeleton h-4 w-20" />
+                <div className="skeleton h-8 w-12" />
+              </div>
+              <div className="skeleton w-8 h-8 rounded-lg" />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        ))}
+      </div>
+
+      {/* Quick Actions Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="card p-6">
+            <div className="skeleton w-12 h-12 rounded-lg mb-4" />
+            <div className="skeleton h-5 w-32 mb-2" />
+            <div className="skeleton h-4 w-24" />
+          </div>
+        ))}
+      </div>
+
+      {/* Recent Activity Skeleton */}
+      <div className="card p-6">
+        <div className="skeleton h-6 w-40 mb-6" />
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-start gap-4">
+              <div className="skeleton w-10 h-10 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <div className="skeleton h-4 w-48" />
+                <div className="skeleton h-3 w-32" />
+              </div>
+              <div className="skeleton h-3 w-16" />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -265,6 +281,18 @@ function DashboardContent() {
     };
 
     const loadHashtagReels = async () => {
+      if (!selectedHashtag) return;
+      
+      // Check cache first
+      const cacheKey = CACHE_KEYS.HASHTAG_REELS(selectedHashtag);
+      const cachedData = apiCache.get<any[]>(cacheKey);
+      
+      if (cachedData) {
+        console.log(`📦 Using cached data for hashtag: ${selectedHashtag}`);
+        setHashtagReels(cachedData);
+        return;
+      }
+      
       try {
         setHashtagReelsLoading(true);
         console.log('🏷️ Loading hashtag reels for:', selectedHashtag);
@@ -286,6 +314,11 @@ function DashboardContent() {
         
         const reels = data.reels || [];
         console.log(`📱 Found ${reels.length} reels for #${selectedHashtag}`);
+        
+        // Cache the results for 1 day
+        apiCache.set(cacheKey, reels, CACHE_DURATIONS.ONE_DAY);
+        console.log(`💾 Cached hashtag data for: ${selectedHashtag} (expires in 24h)`);
+        
         setHashtagReels(reels);
         
       } catch (error) {
@@ -352,46 +385,51 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f8f8f8' }}>
-      {/* Welcome Section */}
+      {/* Integrated Welcome & AI Chat Section */}
       <div className="bg-white border-b border-gray-100">
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto" style={{ padding: '2rem 1rem' }}>
           <div className="max-w-6xl mx-auto">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-              <div>
-                <h1 className="text-3xl md:text-4xl font-bold mb-2" style={{ color: '#3c3c3c' }}>
-                  Welcome back, {displayName}! 👋
-                </h1>
-                <p className="text-lg" style={{ color: '#888888' }}>
-                  Ready to create something delicious today?
-                </p>
-              </div>
+            {/* Welcome Header */}
+            <div className="text-center mb-8">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2" style={{ color: '#3c3c3c', fontSize: '2.5rem', marginBottom: '0.5rem' }}>
+                Welcome back, {displayName}! 👋
+              </h1>
+              <p className="text-base lg:text-lg mb-6" style={{ color: '#888888', fontSize: '1.125rem' }}>
+                Ready to create something delicious today?
+              </p>
+              
+              {/* Quick Action Button */}
               <Button 
-                className="mt-4 md:mt-0 text-white font-semibold px-6 py-3 rounded-lg transition-all hover:opacity-90"
-                style={{ backgroundColor: '#91c11e' }}
+                className="text-white font-semibold rounded-lg transition-all hover:opacity-90 mb-8"
+                style={{ backgroundColor: '#91c11e', padding: '0.75rem 1.5rem', fontSize: '0.875rem' }}
                 onClick={() => router.push('/recipes/discover')}
               >
-                <Sparkles className="h-5 w-5 mr-2" />
+                <Sparkles className="h-4 w-4 lg:h-5 lg:w-5 mr-2" style={{ width: '1.25rem', height: '1.25rem', marginRight: '0.5rem' }} />
                 Discover Recipes
               </Button>
             </div>
+
+            {/* AI Chat Bot - Integrated */}
+            <AIChatBotInline />
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto space-y-8">
+      <div className="container mx-auto" style={{ padding: '1rem' }}>
+        <div className="max-w-6xl mx-auto" style={{ gap: '2rem' }}>
+
           {/* Hashtag Recipe Discovery */}
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold" style={{ color: '#3c3c3c' }}>
+          <div style={{ marginBottom: '2rem' }}>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4" style={{ marginBottom: '1.5rem', gap: '1rem' }}>
+              <h2 className="text-xl lg:text-2xl font-bold" style={{ color: '#3c3c3c', fontSize: '1.5rem' }}>
                 🔥 Discover by Hashtag
               </h2>
               <Button 
-                className="font-medium transition-colors hover:bg-gray-50 text-sm px-3 py-1"
-                style={{ color: '#91c11e' }}
+                className="font-medium transition-colors hover:bg-gray-50"
+                style={{ color: '#91c11e', fontSize: '0.875rem', padding: '0.25rem 0.75rem' }}
                 onClick={() => {
                   trackEvent('view_all_hashtag_clicked', 'homepage', 'navigation');
-                  router.push('/instagram');
+                  router.push('/explore');
                 }}
               >
                 View All
@@ -399,7 +437,7 @@ function DashboardContent() {
             </div>
             
             {/* Hashtag Selection */}
-            <div className="flex flex-wrap gap-2 mb-6">
+            <div className="flex flex-wrap gap-2" style={{ marginBottom: '1.5rem', gap: '0.5rem' }}>
               {[
                 { tag: 'healthyrecipes', label: '🥗 Healthy Recipes', default: true },
                 { tag: 'lowcarb', label: '🥬 Low Carb' },
@@ -414,12 +452,15 @@ function DashboardContent() {
                     setSelectedHashtag(hashtag.tag);
                     trackEvent('hashtag_selected', 'homepage', hashtag.tag);
                   }}
-                  className={`text-sm px-4 py-2 rounded-full transition-all ${
+                  className={`rounded-full transition-all ${
                     selectedHashtag === hashtag.tag
                       ? 'text-white shadow-md'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
-                  style={selectedHashtag === hashtag.tag ? { backgroundColor: '#91c11e' } : {}}
+                  style={selectedHashtag === hashtag.tag ? 
+                    { backgroundColor: '#91c11e', fontSize: '0.875rem', padding: '0.5rem 1rem' } : 
+                    { fontSize: '0.875rem', padding: '0.5rem 1rem' }
+                  }
                 >
                   {hashtag.label}
                 </Button>
@@ -428,12 +469,12 @@ function DashboardContent() {
             
             {/* Loading State */}
             {hashtagReelsLoading && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-4" style={{ gap: '0.75rem' }}>
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="animate-pulse">
-                    <div className="bg-gray-200 aspect-[9/16] rounded-lg mb-2"></div>
-                    <div className="bg-gray-200 h-4 rounded mb-1"></div>
-                    <div className="bg-gray-200 h-3 rounded w-3/4"></div>
+                    <div className="bg-gray-200 aspect-[9/16] rounded-lg" style={{ marginBottom: '0.5rem' }}></div>
+                    <div className="bg-gray-200 rounded" style={{ height: '1rem', marginBottom: '0.25rem' }}></div>
+                    <div className="bg-gray-200 rounded w-3/4" style={{ height: '0.75rem' }}></div>
                   </div>
                 ))}
               </div>
@@ -441,7 +482,7 @@ function DashboardContent() {
             
             {/* Hashtag Recipe Videos */}
             {!hashtagReelsLoading && hashtagReels.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-4" style={{ gap: '0.75rem' }}>
                 {hashtagReels.map((reel) => (
                   <HashtagVideoCard 
                     key={reel.id}
@@ -457,26 +498,26 @@ function DashboardContent() {
             
             {/* No Results */}
             {!hashtagReelsLoading && hashtagReels.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <p>No recent videos found for #{selectedHashtag}</p>
-                <p className="text-sm mt-1">Try selecting a different hashtag</p>
+              <div className="text-center text-gray-500" style={{ padding: '2rem 0' }}>
+                <p style={{ fontSize: '0.875rem' }}>No recent videos found for #{selectedHashtag}</p>
+                <p className="text-xs" style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>Try selecting a different hashtag</p>
               </div>
             )}
           </div>
 
           {/* Recently Saved Reels */}
           {isSignedIn && (
-            <div>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold" style={{ color: '#3c3c3c' }}>
+            <div style={{ marginBottom: '2rem' }}>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4" style={{ marginBottom: '1.5rem', gap: '1rem' }}>
+                <h2 className="text-xl lg:text-2xl font-bold" style={{ color: '#3c3c3c', fontSize: '1.5rem' }}>
                   Recently Saved Recipes
                 </h2>
                 <Button 
-                  className="font-medium transition-colors hover:bg-gray-50 text-sm px-3 py-1"
-                  style={{ color: '#91c11e' }}
+                  className="font-medium transition-colors hover:bg-gray-50"
+                  style={{ color: '#91c11e', fontSize: '0.875rem', padding: '0.25rem 0.75rem' }}
                   onClick={() => {
                     trackEvent('view_all_reels_clicked', 'homepage', 'navigation');
-                    router.push('/instagram');
+                    router.push('/explore');
                   }}
                 >
                   View All
@@ -484,22 +525,22 @@ function DashboardContent() {
               </div>
               
               {reelsLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-4" style={{ gap: '0.75rem' }}>
                   {Array.from({ length: 4 }).map((_, i) => (
                     <Card key={i} className="border border-gray-100 bg-white shadow-sm">
                       <CardContent className="p-0">
-                        <Skeleton className="w-full h-48 rounded-t-lg" />
-                        <div className="p-4">
-                          <Skeleton className="h-4 w-3/4 mb-2" />
-                          <Skeleton className="h-3 w-1/2 mb-2" />
-                          <Skeleton className="h-3 w-1/4" />
+                        <Skeleton className="w-full rounded-t-lg" style={{ height: '12rem' }} />
+                        <div style={{ padding: '1rem' }}>
+                          <Skeleton className="w-3/4 mb-2" style={{ height: '1rem' }} />
+                          <Skeleton className="w-1/2 mb-2" style={{ height: '0.75rem' }} />
+                          <Skeleton className="w-1/4" style={{ height: '0.75rem' }} />
                         </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
               ) : recentSavedReels.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-4" style={{ gap: '0.75rem' }}>
                   {recentSavedReels.map((reel) => (
                     <VideoReelCard 
                       key={reel.id}
@@ -510,25 +551,25 @@ function DashboardContent() {
                 </div>
               ) : (
                 <Card className="border border-gray-100 bg-white shadow-sm">
-                  <CardContent className="p-8 text-center">
-                    <div className="p-4 rounded-full mx-auto w-fit mb-4" style={{ backgroundColor: '#fff8f0' }}>
-                      <Instagram className="h-8 w-8" style={{ color: '#ef9d17' }} />
+                  <CardContent className="text-center" style={{ padding: '2rem' }}>
+                    <div className="rounded-full mx-auto w-fit mb-4" style={{ backgroundColor: '#fff8f0', padding: '1rem' }}>
+                      <Instagram className="h-6 w-6 lg:h-8 lg:w-8" style={{ color: '#ef9d17', width: '2rem', height: '2rem' }} />
                     </div>
-                    <h3 className="font-semibold text-lg mb-2" style={{ color: '#3c3c3c' }}>
+                    <h3 className="font-semibold text-base lg:text-lg mb-2" style={{ color: '#3c3c3c', fontSize: '1.125rem', marginBottom: '0.5rem' }}>
                       No Saved Recipes Yet
                     </h3>
-                    <p className="text-sm mb-4" style={{ color: '#888888' }}>
+                    <p className="text-xs lg:text-sm mb-4" style={{ color: '#888888', fontSize: '0.875rem', marginBottom: '1rem' }}>
                       Start saving recipe reels from Instagram to see them here!
                     </p>
                     <Button 
-                      className="text-white font-semibold px-6 py-2 rounded-lg transition-all hover:opacity-90"
-                      style={{ backgroundColor: '#91c11e' }}
+                      className="text-white font-semibold rounded-lg transition-all hover:opacity-90"
+                      style={{ backgroundColor: '#91c11e', padding: '0.5rem 1.5rem', fontSize: '0.875rem' }}
                       onClick={() => {
                         trackEvent('discover_recipes_clicked', 'homepage', 'empty_state');
-                        router.push('/instagram');
+                        router.push('/explore');
                       }}
                     >
-                      <Instagram className="h-4 w-4 mr-2" />
+                      <Instagram className="h-4 w-4 mr-2" style={{ width: '1rem', height: '1rem', marginRight: '0.5rem' }} />
                       Discover Recipes
                     </Button>
                   </CardContent>
@@ -538,93 +579,94 @@ function DashboardContent() {
           )}
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4" style={{ marginBottom: '2rem', gap: '0.75rem' }}>
             <Card className="border border-gray-100 bg-white shadow-sm">
-              <CardContent className="p-4 md:p-6">
+              <CardContent style={{ padding: '1rem' }}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs md:text-sm font-medium" style={{ color: '#888888' }}>
+                    <p className="font-medium" style={{ color: '#888888', fontSize: '0.75rem' }}>
                       Saved Recipes
                     </p>
-                    <p className="text-xl md:text-2xl font-bold" style={{ color: '#3c3c3c' }}>
+                    <p className="font-bold" style={{ color: '#3c3c3c', fontSize: '1.5rem' }}>
                       {stats.totalRecipes}
                     </p>
                   </div>
-                  <div className="p-2 md:p-3 rounded-full" style={{ backgroundColor: '#f8fff0' }}>
-                    <ChefHat className="h-5 w-5 md:h-6 md:w-6" style={{ color: '#91c11e' }} />
+                  <div className="rounded-full" style={{ backgroundColor: '#f8fff0', padding: '0.75rem' }}>
+                    <ChefHat style={{ color: '#91c11e', width: '1.5rem', height: '1.5rem' }} />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card className="border border-gray-100 bg-white shadow-sm">
-              <CardContent className="p-4 md:p-6">
+              <CardContent style={{ padding: '1rem' }}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs md:text-sm font-medium" style={{ color: '#888888' }}>
+                    <p className="font-medium" style={{ color: '#888888', fontSize: '0.75rem' }}>
                       Meal Plan
                     </p>
-                    <div className="flex items-center space-x-1 md:space-x-2">
-                      <p className="text-lg md:text-2xl font-bold" style={{ color: '#3c3c3c' }}>
+                    <div className="flex items-center" style={{ gap: '0.5rem' }}>
+                      <p className="font-bold" style={{ color: '#3c3c3c', fontSize: '1.25rem' }}>
                         Active
                       </p>
-                      <CheckCircle className="h-4 w-4 md:h-5 md:w-5" style={{ color: '#91c11e' }} />
+                      <CheckCircle style={{ color: '#91c11e', width: '1rem', height: '1rem' }} />
                     </div>
                   </div>
-                  <div className="p-2 md:p-3 rounded-full" style={{ backgroundColor: '#f0f8f0' }}>
-                    <Calendar className="h-5 w-5 md:h-6 md:w-6" style={{ color: '#659a41' }} />
+                  <div className="rounded-full" style={{ backgroundColor: '#f0f8f0', padding: '0.75rem' }}>
+                    <Calendar style={{ color: '#659a41', width: '1.5rem', height: '1.5rem' }} />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card className="border border-gray-100 bg-white shadow-sm">
-              <CardContent className="p-4 md:p-6">
+              <CardContent style={{ padding: '1rem' }}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs md:text-sm font-medium" style={{ color: '#888888' }}>
+                    <p className="font-medium" style={{ color: '#888888', fontSize: '0.75rem' }}>
                       Inventory
                     </p>
-                    <div className="flex items-center space-x-1 md:space-x-2">
-                      <p className="text-xl md:text-2xl font-bold" style={{ color: '#3c3c3c' }}>
+                    <div className="flex items-center" style={{ gap: '0.5rem' }}>
+                      <p className="font-bold" style={{ color: '#3c3c3c', fontSize: '1.5rem' }}>
                         {stats.inventoryItems}
                       </p>
                       {stats.expiringItems > 0 && (
-                        <Badge className="text-xs px-1 md:px-2 py-1 rounded-full font-medium" style={{ backgroundColor: '#fff8f0', color: '#ef9d17' }}>
+                        <Badge className="rounded-full font-medium" style={{ backgroundColor: '#fff8f0', color: '#ef9d17', fontSize: '0.625rem', padding: '0.25rem 0.5rem' }}>
                           {stats.expiringItems} expiring
                         </Badge>
                       )}
                     </div>
                   </div>
-                  <div className="p-2 md:p-3 rounded-full" style={{ backgroundColor: '#fff8f0' }}>
-                    <Package className="h-5 w-5 md:h-6 md:w-6" style={{ color: '#ef9d17' }} />
+                  <div className="rounded-full" style={{ backgroundColor: '#fff8f0', padding: '0.75rem' }}>
+                    <Package style={{ color: '#ef9d17', width: '1.5rem', height: '1.5rem' }} />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card className="border border-gray-100 bg-white shadow-sm">
-              <CardContent className="p-4 md:p-6">
+              <CardContent style={{ padding: '1rem' }}>
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs md:text-sm font-medium" style={{ color: '#888888' }}>
+                    <p className="font-medium" style={{ color: '#888888', fontSize: '0.75rem' }}>
                       Weekly Budget
                     </p>
-                    <p className="text-lg md:text-2xl font-bold truncate" style={{ color: '#3c3c3c' }}>
+                    <p className="font-bold truncate" style={{ color: '#3c3c3c', fontSize: '1.25rem' }}>
                       ${stats.budgetUsed}/${stats.weeklyBudget}
                     </p>
-                    <div className="w-full bg-gray-200 rounded-full h-1.5 md:h-2 mt-1 md:mt-2">
+                    <div className="w-full bg-gray-200 rounded-full transition-all duration-300" style={{ height: '0.5rem', marginTop: '0.5rem' }}>
                       <div 
-                        className="h-1.5 md:h-2 rounded-full transition-all duration-300"
+                        className="rounded-full transition-all duration-300"
                         style={{ 
+                          height: '0.5rem',
                           width: `${Math.min(budgetPercentage, 100)}%`,
                           backgroundColor: budgetPercentage > 90 ? '#ef9d17' : '#91c11e'
                         }}
                       ></div>
                     </div>
                   </div>
-                  <div className="p-2 md:p-3 rounded-full ml-2" style={{ backgroundColor: '#fffef0' }}>
-                    <TrendingUp className="h-5 w-5 md:h-6 md:w-6" style={{ color: '#E8DE10' }} />
+                  <div className="rounded-full" style={{ backgroundColor: '#fffef0', padding: '0.75rem', marginLeft: '0.5rem' }}>
+                    <TrendingUp style={{ color: '#E8DE10', width: '1.5rem', height: '1.5rem' }} />
                   </div>
                 </div>
               </CardContent>
@@ -644,52 +686,54 @@ function DashboardContent() {
           </div>
 
           {/* Quick Actions */}
-          <div>
-            <h2 className="text-2xl font-bold mb-6" style={{ color: '#3c3c3c' }}>
+          <div style={{ marginBottom: '2rem' }}>
+            <h2 className="font-bold" style={{ color: '#3c3c3c', fontSize: '1.5rem', marginBottom: '1.5rem' }}>
               Quick Actions
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4" style={{ gap: '0.75rem' }}>
               {quickActions.map((action) => (
                 <Card
                   key={action.id}
                   className="group cursor-pointer transition-all duration-200 hover:shadow-lg border border-gray-100 bg-white hover:scale-105"
                   onClick={() => handleQuickAction(action)}
                 >
-                  <CardContent className="p-6 text-center">
-                    <div className="space-y-4">
-                      <div className="relative mx-auto w-fit">
+                  <CardContent className="text-center" style={{ padding: '1.5rem' }}>
+                    <div style={{ gap: '1rem' }}>
+                      <div className="relative mx-auto w-fit" style={{ marginBottom: '1rem' }}>
                         <div 
-                          className={`p-4 rounded-full transition-all group-hover:scale-110 ${action.color}`}
+                          className="rounded-full transition-all group-hover:scale-110"
                           style={{
+                            padding: '1rem',
                             backgroundColor: action.id === 'meal-planner' ? '#f8fff0' :
-                                           action.id === 'recipe-reels' ? '#fff8f0' :
-                                           action.id === 'inventory' ? '#f0f8f0' : '#fffef0'
+                                           action.id === 'discover-recipes' ? '#fff8f0' :
+                                           action.id === 'manage-inventory' ? '#f0f8f0' : '#fffef0'
                           }}
                         >
-                          <action.icon 
-                            className="h-8 w-8" 
+                          <action.iconSolid 
                             style={{ 
+                              width: '2rem',
+                              height: '2rem',
                               color: action.id === 'meal-planner' ? '#91c11e' :
-                                     action.id === 'recipe-reels' ? '#ef9d17' :
-                                     action.id === 'inventory' ? '#659a41' : '#E8DE10'
+                                     action.id === 'discover-recipes' ? '#ef9d17' :
+                                     action.id === 'manage-inventory' ? '#659a41' : '#E8DE10'
                             }} 
                           />
                         </div>
                         {action.badge && (
-                          <Badge className="absolute -top-2 -right-2 text-xs px-2 py-1 text-white font-medium" style={{ backgroundColor: '#91c11e' }}>
+                          <Badge className="absolute text-white font-medium" style={{ top: '-0.5rem', right: '-0.5rem', backgroundColor: '#91c11e', fontSize: '0.625rem', padding: '0.25rem 0.5rem' }}>
                             {action.badge}
                           </Badge>
                         )}
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-lg mb-1" style={{ color: '#3c3c3c' }}>
+                      <div style={{ marginBottom: '1rem' }}>
+                        <h3 className="font-semibold" style={{ color: '#3c3c3c', fontSize: '1rem', marginBottom: '0.25rem' }}>
                           {action.title}
                         </h3>
-                        <p className="text-sm" style={{ color: '#888888' }}>
+                        <p style={{ color: '#888888', fontSize: '0.75rem' }}>
                           {action.description}
                         </p>
                       </div>
-                      <ArrowRight className="h-4 w-4 mx-auto opacity-0 group-hover:opacity-100 transition-all" style={{ color: '#91c11e' }} />
+                      <ArrowRight className="mx-auto opacity-0 group-hover:opacity-100 transition-all" style={{ color: '#91c11e', width: '1rem', height: '1rem' }} />
                     </div>
                   </CardContent>
                 </Card>
@@ -738,6 +782,7 @@ function DashboardContent() {
           </Card>
         </div>
       </div>
+
     </div>
   );
 }
