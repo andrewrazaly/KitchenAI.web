@@ -20,20 +20,28 @@ const mainNavigation = [
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { isSignedIn, user, signOut } = useAuth();
+  const { isSignedIn, user, signOut, loading } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  // Handle scroll effect
+  // Ensure component is mounted on client
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Handle scroll effect - only on client
+  useEffect(() => {
+    if (!mounted) return;
+    
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
     };
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [mounted]);
 
   // Close menus when pathname changes
   useEffect(() => {
@@ -45,6 +53,36 @@ export default function Navbar() {
     await signOut();
     setIsProfileOpen(false);
   };
+
+  // Don't render anything until mounted to avoid hydration issues
+  if (!mounted) {
+    return (
+      <header className="sticky top-0 z-40 w-full bg-white">
+        <div className="container mx-auto">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex-shrink-0">
+              <div className="flex items-center gap-2 text-xl font-bold text-neutral-900">
+                <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">K</span>
+                </div>
+                <span className="hidden sm:block">KitchenAI</span>
+              </div>
+            </div>
+            <div className="hidden md:flex items-center space-x-1">
+              <div className="w-20 h-8 bg-neutral-200 animate-pulse rounded-lg" />
+              <div className="w-20 h-8 bg-neutral-200 animate-pulse rounded-lg" />
+              <div className="w-20 h-8 bg-neutral-200 animate-pulse rounded-lg" />
+              <div className="w-20 h-8 bg-neutral-200 animate-pulse rounded-lg" />
+            </div>
+            <div className="hidden md:flex items-center space-x-4">
+              <div className="w-20 h-8 bg-neutral-200 animate-pulse rounded-lg" />
+            </div>
+            <div className="md:hidden w-10 h-10 bg-neutral-200 animate-pulse rounded-lg" />
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   // Don't show navbar on auth pages
   if (pathname?.startsWith('/auth') || pathname?.startsWith('/sign')) {
@@ -95,7 +133,9 @@ export default function Navbar() {
 
           {/* Desktop User Menu */}
           <div className="hidden md:flex items-center space-x-4">
-            {isSignedIn ? (
+            {loading ? (
+              <div className="w-20 h-8 bg-neutral-200 animate-pulse rounded-lg" />
+            ) : isSignedIn ? (
               <div className="relative">
                 <button
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -194,7 +234,11 @@ export default function Navbar() {
 
             {/* Mobile User Section */}
             <div className="mt-6 pt-4 border-t border-neutral-200">
-              {isSignedIn ? (
+              {loading ? (
+                <div className="px-4">
+                  <div className="w-full h-12 bg-neutral-200 animate-pulse rounded-lg" />
+                </div>
+              ) : isSignedIn ? (
                 <div className="space-y-2">
                   <div className="px-4 py-2">
                     <p className="text-sm font-medium text-neutral-900">

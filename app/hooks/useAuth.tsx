@@ -13,12 +13,18 @@ interface AuthState {
 
 export function useAuth() {
   const supabase = useSupabase();
+  const [isHydrated, setIsHydrated] = useState(false);
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     session: null,
     loading: true,
     error: null,
   });
+
+  // Hydration check
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -229,11 +235,11 @@ export function useAuth() {
   };
 
   return {
-    user: authState.user,
-    session: authState.session,
-    loading: authState.loading,
+    user: isHydrated ? authState.user : null,
+    session: isHydrated ? authState.session : null,
+    loading: !isHydrated || authState.loading,
     error: authState.error,
-    isSignedIn: !!authState.user,
+    isSignedIn: isHydrated && !!authState.user,
     signIn,
     signUp,
     signOut,

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { 
   HomeIcon, 
   MagnifyingGlassIcon, 
@@ -74,14 +75,36 @@ const navigation: NavItem[] = [
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure we only render on client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleNavigation = (item: NavItem) => {
     trackEvent('navigation_click', 'bottom_nav', item.name);
   };
 
   // Don't show bottom nav on auth pages
-  if (pathname?.startsWith('/auth') || pathname?.startsWith('/sign')) {
+  if (isClient && (pathname?.startsWith('/auth') || pathname?.startsWith('/sign'))) {
     return null;
+  }
+
+  // Show consistent loading state until client is ready
+  if (!isClient) {
+    return (
+      <nav className="bottom-nav safe-bottom">
+        <div className="flex justify-around items-center h-full px-2">
+          {navigation.map((item) => (
+            <div key={item.name} className="bottom-nav-item">
+              <div className="w-6 h-6 bg-neutral-200 animate-pulse rounded" />
+              <span className="bottom-nav-label">{item.label}</span>
+            </div>
+          ))}
+        </div>
+      </nav>
+    );
   }
 
   return (
@@ -89,6 +112,7 @@ export default function BottomNav() {
       className="bottom-nav safe-bottom"
       role="navigation"
       aria-label="Main navigation"
+      suppressHydrationWarning
     >
       <div className="flex justify-around items-center h-full px-2">
         {navigation.map((item) => {

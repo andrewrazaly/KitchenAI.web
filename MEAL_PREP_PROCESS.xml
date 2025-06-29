@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<meal_prep_process>
+  <overview>
+    <title>Full Weekly Meal Prep Process</title>
+    <description>A comprehensive 9-step system for efficient weekly meal preparation, designed to save time, reduce food waste, and maintain nutritional goals.</description>
+  </overview>
+  
+  <process_steps>
+    <step id="1" name="Goal Setting">
+      <description>Optional but powerful foundation step</description>
+      <tasks>
+        <task>Define your goals: macros/calories, cost-saving, time-saving, variety, or simplicity</task>
+        <task>Decide meal scope: how many meals you're prepping for</task>
+        <task>Set weekly targets: budget, nutrition goals, time constraints</task>
+      </tasks>
+    </step>
+    
+    <step id="2" name="Inspiration + Recipe Selection">
+      <description>Discover and select recipes for the week</description>
+      <tasks>
+        <task>Browse sources: Instagram, Pinterest, saved Reels, cookbooks, or apps</task>
+        <task>Pick 4–6 core recipes that share ingredients</task>
+        <task>Consider variety: different proteins, cooking methods, and cuisines</task>
+        <task>Check difficulty: balance complex and simple recipes</task>
+      </tasks>
+    </step>
+    
+    <step id="3" name="Inventory Check">
+      <description>Pantry + Fridge Audit</description>
+      <tasks>
+        <task>Check existing stock: avoid duplicates and reduce waste</task>
+        <task>Cross-reference recipes: see what you already have</task>
+        <task>Note expiration dates: prioritize ingredients that need to be used soon</task>
+        <task>Create "use first" list: items approaching expiration</task>
+      </tasks>
+    </step>
+    
+    <step id="4" name="Smart Grocery List Creation">
+      <description>Organize shopping needs efficiently</description>
+      <categories>
+        <category>Produce</category>
+        <category>Meat &amp; Seafood</category>
+        <category>Pantry Items</category>
+        <category>Dairy &amp; Eggs</category>
+        <category>Freezer Items</category>
+        <category>Condiments &amp; Spices</category>
+      </categories>
+      <tasks>
+        <task>Auto-categorize by section</task>
+        <task>Combine quantities from multiple recipes to avoid overbuying</task>
+        <task>Tag preferences: discounted or preferred brands if budget-conscious</task>
+        <task>Add backup items: quick meal options for busy days</task>
+      </tasks>
+    </step>
+    
+    <step id="5" name="Grocery Shopping">
+      <description>Execute shopping plan efficiently</description>
+      <tasks>
+        <task>Use pre-built list: digital or print format</task>
+        <task>Shop strategically: follow store layout to save time</task>
+        <task>Check quality: especially for produce and proteins</task>
+        <task>Optional: Order online for convenience</task>
+        <task>Optional: Use AI agents for best local discounts</task>
+        <task>Optional: Compare prices across stores</task>
+      </tasks>
+    </step>
+    
+    <step id="6" name="Prep Day / Batch Cook Day">
+      <description>Choose 1–2 days per week for meal preparation</description>
+      <methods>
+        <method name="Full Cook Method">
+          <description>Cook all meals completely and store in containers</description>
+          <best_for>busy schedules, grab-and-go convenience</best_for>
+        </method>
+        <method name="Partial Prep Method">
+          <tasks>
+            <task>Chop vegetables: store in airtight containers</task>
+            <task>Marinate proteins: prepare for quick cooking later</task>
+            <task>Cook grains/starches: rice, quinoa, pasta in bulk</task>
+            <task>Pre-cook proteins: chicken, ground meat, etc.</task>
+          </tasks>
+        </method>
+      </methods>
+      <organization_tips>
+        <tip>Label containers: meal name + preparation date</tip>
+        <tip>Use proper storage: microwave/oven safe, BPA-free containers</tip>
+        <tip>Separate components: keep sauces separate to avoid sogginess</tip>
+      </organization_tips>
+    </step>
+    
+    <step id="7" name="Meal Planning Calendar">
+      <description>Schedule meals strategically throughout the week</description>
+      <scheduling_factors>
+        <factor>Freshness priority: fish early week, pasta later</factor>
+        <factor>Time availability: quick meals on busy days</factor>
+        <factor>Variety balance: different cuisines throughout week</factor>
+      </scheduling_factors>
+      <integration_options>
+        <option>Sync with calendar app</option>
+        <option>Use dedicated meal planner</option>
+        <option>Create visual meal board</option>
+      </integration_options>
+    </step>
+    
+    <step id="8" name="Storage &amp; Portioning">
+      <description>Proper storage for maximum freshness and convenience</description>
+      <tasks>
+        <task>Container selection: microwave/oven safe, BPA-free, various sizes</task>
+        <task>Proper portioning: based on nutritional goals and appetite</task>
+        <task>Sauce separation: prevent sogginess and maintain texture</task>
+        <task>Freezer strategy: freeze overflow meals for backup weeks</task>
+        <task>Labeling system: clear dates and contents for easy identification</task>
+      </tasks>
+    </step>
+    
+    <step id="9" name="Feedback &amp; Adjust">
+      <description>End-of-week evaluation process</description>
+      <evaluation_questions>
+        <question>What worked well? (successful recipes and processes)</question>
+        <question>What didn't work? (identify pain points and failures)</question>
+      </evaluation_questions>
+      <tasks>
+        <task>Recipe tracking: maintain journal or app of liked meals</task>
+        <task>Build rotation list: catalog of reliable go-to recipes</task>
+        <task>Process refinement: adjust timing, quantities, or methods</task>
+      </tasks>
+    </step>
+  </process_steps>
+  
+  <automation_tips>
+    <category name="AI Integration">
+      <tip>Use AI to recommend recipes based on pantry inventory + macro goals</tip>
+      <tip>Automatically generate grocery lists with shopping links</tip>
+      <tip>Get personalized suggestions based on dietary restrictions</tip>
+    </category>
+    
+    <category name="Scheduling Automation">
+      <tip>Build recurring schedule for planning and cooking days</tip>
+      <reminder>"Defrost chili for tomorrow"</reminder>
+      <reminder>"Marinate chicken tonight"</reminder>
+      <reminder>"Prep vegetables this evening"</reminder>
+    </category>
+    
+    <category name="Smart Shopping">
+      <tip>Price comparison tools and apps</tip>
+      <tip>Automatic coupon application</tip>
+      <tip>Inventory tracking to prevent overbuying</tip>
+    </category>
+    
+    <category name="Progress Tracking">
+      <tip>Photo documentation of meal prep sessions</tip>
+      <tip>Cost tracking per meal and per week</tip>
+      <tip>Nutritional analysis and goal tracking</tip>
+      <tip>Time spent vs. time saved calculations</tip>
+    </category>
+  </automation_tips>
+  
+  <benefits>
+    <category name="Time Savings">
+      <benefit>Reduced daily cooking decisions</benefit>
+      <benefit>Batch preparation efficiency</benefit>
+      <benefit>Streamlined grocery shopping</benefit>
+    </category>
+    
+    <category name="Cost Reduction">
+      <benefit>Bulk buying advantages</benefit>
+      <benefit>Reduced food waste</benefit>
+      <benefit>Strategic use of ingredients across multiple recipes</benefit>
+    </category>
+    
+    <category name="Health Benefits">
+      <benefit>Consistent nutrition tracking</benefit>
+      <benefit>Portion control</benefit>
+      <benefit>Reduced reliance on processed foods</benefit>
+    </category>
+    
+    <category name="Stress Reduction">
+      <benefit>Elimination of "what's for dinner?" decisions</benefit>
+      <benefit>Confidence in meal availability</benefit>
+      <benefit>Flexible system that adapts to lifestyle changes</benefit>
+    </category>
+  </benefits>
+</meal_prep_process> 
